@@ -200,4 +200,34 @@ tbody tr:hover {
 
 .timer-warning {
     color: #e74c3c;
+}
+
+.quiz-panel {
+    position: relative;
+    padding-top: 160px; /* Adjust based on your header height */
+}
+
+.quiz-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    padding: 1rem;
+    z-index: 100;
+    border-bottom: 1px solid #ddd;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.quiz-content {
+    overflow-y: auto;
+    width: 100%;
+}
+
+@media (min-width: 900px) {
+    .quiz-header {
+        width: 900px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
 } 

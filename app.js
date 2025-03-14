@@ -121,6 +121,34 @@ class QuizApp {
     }
     
     renderQuiz() {
+        // First render, restructure the quiz panel
+        if (!document.querySelector('.quiz-header')) {
+            // Create quiz header
+            const quizHeader = document.createElement('div');
+            quizHeader.className = 'quiz-header';
+            
+            // Move timer, input, and progress to header
+            quizHeader.appendChild(document.querySelector('.timer-container'));
+            quizHeader.appendChild(document.querySelector('.answer-input-container'));
+            quizHeader.appendChild(document.querySelector('.progress-container'));
+            
+            // Create quiz content container
+            const quizContent = document.createElement('div');
+            quizContent.className = 'quiz-content';
+            
+            // Move table to content container
+            quizContent.appendChild(this.quizTable);
+            
+            // Get button container
+            const buttonContainer = document.querySelector('.button-container');
+            
+            // Clear quiz panel and restructure
+            this.quizPanel.innerHTML = '';
+            this.quizPanel.appendChild(quizHeader);
+            this.quizPanel.appendChild(quizContent);
+            quizContent.appendChild(buttonContainer);
+        }
+        
         this.quizBody.innerHTML = '';
         
         this.questions.forEach((question, index) => {
