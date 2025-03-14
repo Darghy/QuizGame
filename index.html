@@ -10,7 +10,14 @@
     <div class="container">
         <h1>LLM Quiz Generator</h1>
         
-        <div class="setup-panel">
+        <!-- Main Menu -->
+        <div class="main-menu">
+            <button id="createQuizBtn" class="menu-btn">Create New Quiz</button>
+            <button id="pregeneratedBtn" class="menu-btn">Pregenerated Quizzes</button>
+        </div>
+        
+        <!-- Quiz Setup Panel -->
+        <div class="setup-panel" style="display: none;">
             <div class="form-group">
                 <label for="apiKey">OpenAI API Key:</label>
                 <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
@@ -40,9 +47,22 @@
                     <span>sec</span>
                 </div>
             </div>
-            <button id="generateBtn">Generate Quiz</button>
+            <div class="button-container">
+                <button id="backToMenuBtn" class="secondary-btn">Back</button>
+                <button id="generateBtn">Generate Quiz</button>
+            </div>
         </div>
         
+        <!-- Pregenerated Quizzes Panel -->
+        <div class="pregenerated-panel" style="display: none;">
+            <h2>Pregenerated Quizzes</h2>
+            <div id="quizList" class="quiz-list">
+                <!-- Quiz cards will be inserted here -->
+            </div>
+            <button id="backFromPregeneratedBtn" class="secondary-btn">Back to Menu</button>
+        </div>
+        
+        <!-- Active Quiz Panel -->
         <div class="quiz-panel" style="display: none;">
             <div class="timer-container">
                 <div id="timer">00:00:00</div>

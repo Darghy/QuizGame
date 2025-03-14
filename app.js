@@ -8,11 +8,15 @@ class QuizApp {
         this.totalSeconds = 240; // Default 4 minutes
         this.remainingSeconds = this.totalSeconds;
         this.isCountdown = true;
+        this.pregeneratedQuizzes = [];
         
-        // DOM elements
+        // DOM elements - Main Menu
+        this.mainMenu = document.querySelector('.main-menu');
+        this.createQuizBtn = document.getElementById('createQuizBtn');
+        this.pregeneratedBtn = document.getElementById('pregeneratedBtn');
+        
+        // DOM elements - Setup
         this.setupPanel = document.querySelector('.setup-panel');
-        this.quizPanel = document.querySelector('.quiz-panel');
-        this.loadingElement = document.getElementById('loading');
         this.apiKeyInput = document.getElementById('apiKey');
         this.numQuestionsInput = document.getElementById('numQuestions');
         this.difficultySelect = document.getElementById('difficulty');
@@ -20,6 +24,16 @@ class QuizApp {
         this.timerMinutesInput = document.getElementById('timerMinutes');
         this.timerSecondsInput = document.getElementById('timerSeconds');
         this.generateBtn = document.getElementById('generateBtn');
+        this.backToMenuBtn = document.getElementById('backToMenuBtn');
+        
+        // DOM elements - Pregenerated
+        this.pregeneratedPanel = document.querySelector('.pregenerated-panel');
+        this.quizList = document.getElementById('quizList');
+        this.backFromPregeneratedBtn = document.getElementById('backFromPregeneratedBtn');
+        
+        // DOM elements - Quiz
+        this.quizPanel = document.querySelector('.quiz-panel');
+        this.loadingElement = document.getElementById('loading');
         this.timerElement = document.getElementById('timer');
         this.answerInput = document.getElementById('answerInput');
         this.submitAnswerBtn = document.getElementById('submitAnswer');
@@ -31,6 +45,9 @@ class QuizApp {
         // Initialize event listeners
         this.initEventListeners();
         
+        // Load pregenerated quizzes and API key
+        this.loadPregeneratedQuizzes();
+        
         // Check for saved API key
         const savedApiKey = localStorage.getItem('quizApiKey');
         if (savedApiKey) {
@@ -39,7 +56,32 @@ class QuizApp {
     }
     
     initEventListeners() {
+        // Main menu
+        this.createQuizBtn.addEventListener('click', () => {
+            this.mainMenu.style.display = 'none';
+            this.setupPanel.style.display = 'block';
+        });
+        
+        this.pregeneratedBtn.addEventListener('click', () => {
+            this.mainMenu.style.display = 'none';
+            this.pregeneratedPanel.style.display = 'block';
+            this.renderPregeneratedQuizzes();
+        });
+        
+        // Setup panel
         this.generateBtn.addEventListener('click', () => this.generateQuiz());
+        this.backToMenuBtn.addEventListener('click', () => {
+            this.setupPanel.style.display = 'none';
+            this.mainMenu.style.display = 'block';
+        });
+        
+        // Pregenerated panel
+        this.backFromPregeneratedBtn.addEventListener('click', () => {
+            this.pregeneratedPanel.style.display = 'none';
+            this.mainMenu.style.display = 'block';
+        });
+        
+        // Quiz panel
         this.submitAnswerBtn.addEventListener('click', () => this.checkAnswer());
         this.answerInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -56,6 +98,65 @@ class QuizApp {
         });
         
         this.endQuizBtn.addEventListener('click', () => this.endQuiz());
+    }
+    
+    loadPregeneratedQuizzes() {
+        const savedQuizzes = localStorage.getItem('pregeneratedQuizzes');
+        if (savedQuizzes) {
+            this.pregeneratedQuizzes = JSON.parse(savedQuizzes);
+        }
+    }
+    
+    savePregeneratedQuizzes() {
+        localStorage.setItem('pregeneratedQuizzes', JSON.stringify(this.pregeneratedQuizzes));
+    }
+    
+    renderPregeneratedQuizzes() {
+        this.quizList.innerHTML = '';
+        
+        if (this.pregeneratedQuizzes.length === 0) {
+            const emptyMessage = document.createElement('p');
+            emptyMessage.textContent = 'No pregenerated quizzes available. Generate a quiz to add it here.';
+            emptyMessage.className = 'empty-message';
+            this.quizList.appendChild(emptyMessage);
+            return;
+        }
+        
+        this.pregeneratedQuizzes.forEach((quiz, index) => {
+            const quizCard = document.createElement('div');
+            quizCard.className = 'quiz-card';
+            quizCard.addEventListener('click', () => this.startPregeneratedQuiz(index));
+            
+            const title = document.createElement('h3');
+            title.textContent = `Quiz #${index + 1}`;
+            
+            const questions = document.createElement('p');
+            questions.textContent = `${quiz.questions.length} questions`;
+            
+            const time = document.createElement('p');
+            const minutes = Math.floor(quiz.totalSeconds / 60);
+            const seconds = quiz.totalSeconds % 60;
+            time.textContent = `${minutes} min ${seconds} sec`;
+            
+            const topic = document.createElement('p');
+            if (quiz.topic) {
+                topic.textContent = `Topic: ${quiz.topic}`;
+            } else {
+                topic.textContent = 'Random topics';
+            }
+            
+            const difficulty = document.createElement('span');
+            difficulty.className = 'tag';
+            difficulty.textContent = quiz.difficulty;
+            
+            quizCard.appendChild(title);
+            quizCard.appendChild(questions);
+            quizCard.appendChild(time);
+            quizCard.appendChild(topic);
+            quizCard.appendChild(difficulty);
+            
+            this.quizList.appendChild(quizCard);
+        });
     }
     
     async generateQuiz() {
@@ -110,6 +211,16 @@ class QuizApp {
                 this.questions = this.questions.slice(0, numQuestions);
             }
             
+            // Save this quiz to pregenerated quizzes
+            this.pregeneratedQuizzes.push({
+                questions: this.questions,
+                difficulty: difficulty,
+                topic: topic,
+                totalSeconds: this.totalSeconds,
+                timestamp: Date.now()
+            });
+            this.savePregeneratedQuizzes();
+            
             this.answers = new Array(this.questions.length).fill('');
             
             // Hide loading spinner and show quiz
@@ -125,6 +236,33 @@ class QuizApp {
             this.loadingElement.style.display = 'none';
             this.setupPanel.style.display = 'block';
         }
+    }
+    
+    startPregeneratedQuiz(index) {
+        const quiz = this.pregeneratedQuizzes[index];
+        if (!quiz) {
+            alert('Quiz not found');
+            return;
+        }
+        
+        // Make sure any existing fixed timer is removed before starting a new one
+        if (document.querySelector('.timer-fixed')) {
+            document.querySelector('.timer-fixed').remove();
+        }
+        
+        this.questions = quiz.questions;
+        this.answers = new Array(this.questions.length).fill('');
+        this.totalSeconds = quiz.totalSeconds;
+        this.remainingSeconds = this.totalSeconds;
+        
+        // Hide pregenerated panel and show quiz
+        this.pregeneratedPanel.style.display = 'none';
+        this.quizPanel.style.display = 'block';
+        
+        // Start timer and render quiz
+        this.startTimer();
+        this.renderQuiz();
+        this.answerInput.focus();
     }
     
     renderQuiz() {
@@ -219,30 +357,39 @@ class QuizApp {
     }
     
     startTimer() {
-        // Initialize with the remaining seconds
-        this.remainingSeconds = this.totalSeconds;
-        this.updateTimerDisplay();
+        clearInterval(this.timerInterval);
+        this.timerElement.classList.remove('timer-warning');
         
-        this.timerInterval = setInterval(() => {
-            this.remainingSeconds--;
-            
-            this.updateTimerDisplay();
-            
-            // Check if timer has expired
-            if (this.remainingSeconds <= 0) {
-                this.stopTimer();
-                setTimeout(() => {
-                    const answeredCount = this.answers.filter(answer => answer).length;
-                    alert(`Time's up! You've answered ${answeredCount} out of ${this.questions.length} questions.`);
-                    this.endQuiz(false); // End quiz without confirmation
-                }, 100);
+        const updateTimer = () => {
+            if (this.isCountdown) {
+                this.remainingSeconds--;
+                
+                if (this.remainingSeconds <= 60 && !this.timerElement.classList.contains('timer-warning')) {
+                    this.timerElement.classList.add('timer-warning');
+                }
+                
+                if (this.remainingSeconds <= 0) {
+                    clearInterval(this.timerInterval);
+                    alert('Time\'s up!');
+                    this.endQuiz(false);
+                    return;
+                }
+            } else {
+                this.remainingSeconds++;
             }
             
-            // Add warning class when less than 30 seconds remain
-            if (this.remainingSeconds <= 30) {
-                this.timerElement.classList.add('timer-warning');
-            }
-        }, 1000);
+            const hours = Math.floor(this.remainingSeconds / 3600);
+            const minutes = Math.floor((this.remainingSeconds % 3600) / 60);
+            const seconds = this.remainingSeconds % 60;
+            
+            this.timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        };
+        
+        // Initial display
+        updateTimer();
+        
+        // Start interval
+        this.timerInterval = setInterval(updateTimer, 1000);
     }
     
     stopTimer() {
@@ -251,88 +398,113 @@ class QuizApp {
     
     checkAnswer() {
         const userAnswer = this.answerInput.value.trim();
-        
         if (!userAnswer) return;
         
-        // Find unanswered questions
-        const unansweredIndices = this.answers.map((answer, index) => 
-            answer ? -1 : index
-        ).filter(index => index !== -1);
-        
-        if (unansweredIndices.length === 0) {
-            alert('All questions have been answered!');
-            return;
-        }
-        
-        // Check if the answer matches any of the unanswered questions
-        let matchFound = false;
-        
-        for (const index of unansweredIndices) {
-            const correctAnswer = this.questions[index].answer.toLowerCase();
+        for (let i = 0; i < this.questions.length; i++) {
+            if (this.answers[i]) continue; // Skip already answered questions
             
-            // Simple string matching (can be improved with more sophisticated matching)
+            const correctAnswer = this.questions[i].answer.toLowerCase();
             if (this.isCorrectAnswer(userAnswer, correctAnswer)) {
-                this.answers[index] = this.questions[index].answer;
-                matchFound = true;
-                break;
+                this.answers[i] = this.questions[i].answer;
+                this.renderQuiz();
+                this.answerInput.value = '';
+                
+                // Check if all questions are answered
+                if (this.answers.every(answer => answer)) {
+                    clearInterval(this.timerInterval);
+                    alert('Congratulations! You\'ve answered all questions correctly!');
+                }
+                
+                return;
             }
         }
         
-        if (matchFound) {
-            this.answerInput.value = '';
-            this.renderQuiz();
+        // Shake the input to indicate wrong answer
+        this.answerInput.classList.add('shake');
+        setTimeout(() => this.answerInput.classList.remove('shake'), 500);
+    }
+    
+    checkForExactMatch(userAnswer) {
+        for (let i = 0; i < this.questions.length; i++) {
+            if (this.answers[i]) continue; // Skip already answered questions
             
-            // Check if all questions are answered
-            if (!this.answers.includes('')) {
-                this.stopTimer();
-                setTimeout(() => {
-                    alert(`Congratulations! You've completed the quiz in ${this.timerElement.textContent}!`);
-                }, 100);
+            const correctAnswer = this.questions[i].answer.toLowerCase();
+            if (this.isCorrectAnswer(userAnswer, correctAnswer)) {
+                this.answers[i] = this.questions[i].answer;
+                this.renderQuiz();
+                this.answerInput.value = '';
+                
+                // Check if all questions are answered
+                if (this.answers.every(answer => answer)) {
+                    clearInterval(this.timerInterval);
+                    alert('Congratulations! You\'ve answered all questions correctly!');
+                }
+                
+                return;
             }
-        } else {
-            // Optionally provide feedback for incorrect answers
-            this.answerInput.classList.add('incorrect');
-            setTimeout(() => {
-                this.answerInput.classList.remove('incorrect');
-            }, 500);
         }
     }
     
     isCorrectAnswer(userAnswer, correctAnswer) {
-        // Convert both to lowercase for case-insensitive comparison
+        // Case insensitive comparison
         userAnswer = userAnswer.toLowerCase();
         
-        // Exact match
+        // Direct match
         if (userAnswer === correctAnswer) return true;
         
-        // Allow for some flexibility in answers
-        // Remove articles and common punctuation
-        const normalizeAnswer = (answer) => {
-            return answer
-                .replace(/^(a|an|the) /i, '')
-                .replace(/[.,;:!?'"()]/g, '')
-                .trim();
-        };
+        // Allow for minor variations
+        const userWords = userAnswer.split(/\s+/).filter(word => word.length > 0);
+        const correctWords = correctAnswer.split(/\s+/).filter(word => word.length > 0);
         
-        const normalizedUser = normalizeAnswer(userAnswer);
-        const normalizedCorrect = normalizeAnswer(correctAnswer);
+        // Check for article differences (a, an, the)
+        const articles = ['a', 'an', 'the'];
+        const userWordsNoArticles = userWords.filter(word => !articles.includes(word));
+        const correctWordsNoArticles = correctWords.filter(word => !articles.includes(word));
         
-        if (normalizedUser === normalizedCorrect) return true;
+        if (userWordsNoArticles.join(' ') === correctWordsNoArticles.join(' ')) return true;
         
-        // Check if user answer is contained in correct answer or vice versa
-        if (normalizedCorrect.includes(normalizedUser) || normalizedUser.includes(normalizedCorrect)) {
-            // Only consider it correct if it's a substantial match (more than 3 characters)
-            return normalizedUser.length > 3 || normalizedCorrect.length > 3;
-        }
+        // Allow for minor spelling differences
+        if (this.levenshteinDistance(userAnswer, correctAnswer) <= 2 && correctAnswer.length > 4) return true;
         
         return false;
+    }
+    
+    levenshteinDistance(a, b) {
+        const matrix = [];
+        
+        // Increment along the first column of each row
+        for (let i = 0; i <= b.length; i++) {
+            matrix[i] = [i];
+        }
+        
+        // Increment each column in the first row
+        for (let j = 0; j <= a.length; j++) {
+            matrix[0][j] = j;
+        }
+        
+        // Fill in the rest of the matrix
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1, // substitution
+                        matrix[i][j - 1] + 1,     // insertion
+                        matrix[i - 1][j] + 1      // deletion
+                    );
+                }
+            }
+        }
+        
+        return matrix[b.length][a.length];
     }
     
     endQuiz(withConfirmation = true) {
         if (!withConfirmation || confirm('Are you sure you want to end the quiz? Your progress will be lost.')) {
             this.stopTimer();
             this.quizPanel.style.display = 'none';
-            this.setupPanel.style.display = 'block';
+            this.mainMenu.style.display = 'block'; // Go back to main menu
             
             // Remove warning class when returning to setup
             this.timerElement.classList.remove('timer-warning');
@@ -343,55 +515,9 @@ class QuizApp {
             }
         }
     }
-    
-    updateTimerDisplay() {
-        const hours = Math.floor(this.remainingSeconds / 3600).toString().padStart(2, '0');
-        const minutes = Math.floor((this.remainingSeconds % 3600) / 60).toString().padStart(2, '0');
-        const seconds = (this.remainingSeconds % 60).toString().padStart(2, '0');
-        
-        if (this.totalSeconds > 3600) {
-            this.timerElement.textContent = `${hours}:${minutes}:${seconds}`;
-        } else {
-            this.timerElement.textContent = `${minutes}:${seconds}`;
-        }
-    }
-    
-    checkForExactMatch(userAnswer) {
-        // Only check for exact matches while typing
-        if (!userAnswer) return;
-        
-        // Find unanswered questions
-        const unansweredIndices = this.answers.map((answer, index) => 
-            answer ? -1 : index
-        ).filter(index => index !== -1);
-        
-        if (unansweredIndices.length === 0) return;
-        
-        for (const index of unansweredIndices) {
-            const correctAnswer = this.questions[index].answer.toLowerCase();
-            userAnswer = userAnswer.toLowerCase();
-            
-            // Only use exact matching for immediate feedback
-            if (userAnswer === correctAnswer) {
-                this.answers[index] = this.questions[index].answer;
-                this.answerInput.value = '';
-                this.renderQuiz();
-                
-                // Check if all questions are answered
-                if (!this.answers.includes('')) {
-                    this.stopTimer();
-                    setTimeout(() => {
-                        alert(`Congratulations! You've completed the quiz in ${this.timerElement.textContent}!`);
-                    }, 100);
-                }
-                
-                break;
-            }
-        }
-    }
 }
 
 // Initialize the app when the page loads
-document.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', () => {
     new QuizApp();
 }); 
