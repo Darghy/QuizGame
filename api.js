@@ -31,6 +31,8 @@ class QuizAPI {
                             content: `Generate ${numQuestions} ${difficulty} trivia questions${topicPrompt} in JSON format. Make the questions diverse and unexpected.`
                         }
                     ],
+                    "temperature": 1.2,
+                    "presence_penalty": 1,
                 })
             });
 
