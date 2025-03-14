@@ -121,14 +121,33 @@ class QuizApp {
     }
     
     renderQuiz() {
+        // First, move the timer element to body if it's not already done
+        if (!document.querySelector('.timer-fixed')) {
+            const timerElement = document.getElementById('timer');
+            
+            // Create a new timer container
+            const fixedTimerContainer = document.createElement('div');
+            fixedTimerContainer.id = 'timer';
+            fixedTimerContainer.className = 'timer-fixed';
+            fixedTimerContainer.textContent = this.timerElement.textContent;
+            
+            // Remove old timer
+            this.timerElement.parentNode.remove();
+            
+            // Add new timer to the body
+            document.body.appendChild(fixedTimerContainer);
+            
+            // Update the timer element reference
+            this.timerElement = fixedTimerContainer;
+        }
+        
         // First render, restructure the quiz panel
         if (!document.querySelector('.quiz-header')) {
             // Create quiz header
             const quizHeader = document.createElement('div');
             quizHeader.className = 'quiz-header';
             
-            // Move timer, input, and progress to header
-            quizHeader.appendChild(document.querySelector('.timer-container'));
+            // Move input and progress to header (timer is now outside)
             quizHeader.appendChild(document.querySelector('.answer-input-container'));
             quizHeader.appendChild(document.querySelector('.progress-container'));
             
@@ -289,8 +308,14 @@ class QuizApp {
             this.stopTimer();
             this.quizPanel.style.display = 'none';
             this.setupPanel.style.display = 'block';
+            
             // Remove warning class when returning to setup
             this.timerElement.classList.remove('timer-warning');
+            
+            // If using the fixed timer, remove it when ending the quiz
+            if (document.querySelector('.timer-fixed')) {
+                document.querySelector('.timer-fixed').remove();
+            }
         }
     }
     

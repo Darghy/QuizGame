@@ -230,4 +230,18 @@ tbody tr:hover {
         left: 50%;
         transform: translateX(-50%);
     }
+}
+
+.timer-fixed {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000;
+    font-size: 2rem;
+    font-weight: bold;
+    color: #2c3e50;
+    background-color: rgba(241, 242, 246, 0.9);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 } 
