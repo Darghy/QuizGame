@@ -326,6 +326,9 @@ class QuizApp {
         this.totalSeconds = quiz.totalSeconds;
         this.remainingSeconds = this.totalSeconds;
         
+        // Ensure the hasGivenUp flag is reset when starting a new quiz
+        this.hasGivenUp = false;
+        
         // Remove the fixed back button if it exists
         const fixedBackBtn = document.querySelector('#fixedBackFromPregeneratedBtn');
         if (fixedBackBtn) {
@@ -547,6 +550,9 @@ class QuizApp {
         if (!withConfirmation || confirm('Are you sure you want to end the quiz? Your progress will be lost.')) {
             this.stopTimer();
             
+            // Reset the hasGivenUp flag when exiting a quiz
+            this.hasGivenUp = false;
+            
             // Hide all quiz components
             this.quizPanel.style.display = 'none';
             
@@ -559,6 +565,12 @@ class QuizApp {
             // Remove fixed timer if it exists
             if (document.querySelector('.timer-fixed')) {
                 document.querySelector('.timer-fixed').remove();
+            }
+            
+            // Remove any status messages
+            const statusMessage = this.quizPanel.querySelector('.status-message');
+            if (statusMessage) {
+                statusMessage.remove();
             }
             
             // Reset the quiz panel structure to its original state
