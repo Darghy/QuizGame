@@ -451,7 +451,7 @@ class QuizApp {
                 if (this.remainingSeconds <= 0) {
                     clearInterval(this.timerInterval);
                     alert('Time\'s up!');
-                    this.endQuiz(false);
+                    this.endQuiz();
                     return;
                 }
             } else {
@@ -546,48 +546,46 @@ class QuizApp {
         return false;
     }
     
-    endQuiz(withConfirmation = true) {
-        if (!withConfirmation || confirm('Are you sure you want to end the quiz? Your progress will be lost.')) {
-            this.stopTimer();
-            
-            // Reset the hasGivenUp flag when exiting a quiz
-            this.hasGivenUp = false;
-            
-            // Hide all quiz components
-            this.quizPanel.style.display = 'none';
-            
-            // Remove fixed header if it exists
-            const quizHeader = document.querySelector('.quiz-header');
-            if (quizHeader) {
-                quizHeader.remove();
-            }
-            
-            // Remove fixed timer if it exists
-            if (document.querySelector('.timer-fixed')) {
-                document.querySelector('.timer-fixed').remove();
-            }
-            
-            // Remove any status messages
-            const statusMessage = this.quizPanel.querySelector('.status-message');
-            if (statusMessage) {
-                statusMessage.remove();
-            }
-            
-            // Reset the quiz panel structure to its original state
-            this.resetQuizPanel();
-            
-            // Ensure the setup panel is properly reset for future use
-            this.resetSetupPanel();
-            
-            // Reset the main menu to ensure consistent appearance
-            this.resetMainMenu();
-            
-            // Show main menu
-            this.mainMenu.style.display = 'block';
-            
-            // Remove warning class
-            this.timerElement.classList.remove('timer-warning');
+    endQuiz() {
+        this.stopTimer();
+        
+        // Reset the hasGivenUp flag when exiting a quiz
+        this.hasGivenUp = false;
+        
+        // Hide all quiz components
+        this.quizPanel.style.display = 'none';
+        
+        // Remove fixed header if it exists
+        const quizHeader = document.querySelector('.quiz-header');
+        if (quizHeader) {
+            quizHeader.remove();
         }
+        
+        // Remove fixed timer if it exists
+        if (document.querySelector('.timer-fixed')) {
+            document.querySelector('.timer-fixed').remove();
+        }
+        
+        // Remove any status messages
+        const statusMessage = this.quizPanel.querySelector('.status-message');
+        if (statusMessage) {
+            statusMessage.remove();
+        }
+        
+        // Reset the quiz panel structure to its original state
+        this.resetQuizPanel();
+        
+        // Ensure the setup panel is properly reset for future use
+        this.resetSetupPanel();
+        
+        // Reset the main menu to ensure consistent appearance
+        this.resetMainMenu();
+        
+        // Show main menu
+        this.mainMenu.style.display = 'block';
+        
+        // Remove warning class
+        this.timerElement.classList.remove('timer-warning');
     }
     
     startQuiz() {
@@ -938,44 +936,42 @@ class QuizApp {
     }
     
     giveUp() {
-        if (confirm('Are you sure you want to give up? All remaining answers will be revealed.')) {
-            // Stop the timer
-            this.stopTimer();
-            
-            // Disable the answer input and submit button
-            this.answerInput.disabled = true;
-            this.answerInput.classList.add('disabled-input');
-            this.submitAnswerBtn.disabled = true;
-            this.submitAnswerBtn.classList.add('disabled-input');
-            
-            // Disable the Give Up button since we've already given up
-            this.giveUpBtn.disabled = true;
-            this.giveUpBtn.classList.add('disabled-input');
-            
-            // Set the hasGivenUp flag to true
-            this.hasGivenUp = true;
-            
-            // Add a status message to show the user has given up
-            const statusElement = document.createElement('div');
-            statusElement.className = 'status-message';
-            statusElement.textContent = 'You gave up. All answers have been revealed.';
-            statusElement.style.color = '#f44336';
-            statusElement.style.fontWeight = 'bold';
-            statusElement.style.margin = '10px 0';
-            statusElement.style.textAlign = 'center';
-            
-            // Check if we already have a status message and remove it
-            const existingStatus = this.quizPanel.querySelector('.status-message');
-            if (existingStatus) {
-                existingStatus.remove();
-            }
-            
-            // Insert the status message before the quiz table
-            this.quizPanel.insertBefore(statusElement, this.quizTable);
-            
-            // Force re-render the quiz to show the revealed answers
-            this.renderQuiz();
+        // Stop the timer
+        this.stopTimer();
+        
+        // Disable the answer input and submit button
+        this.answerInput.disabled = true;
+        this.answerInput.classList.add('disabled-input');
+        this.submitAnswerBtn.disabled = true;
+        this.submitAnswerBtn.classList.add('disabled-input');
+        
+        // Disable the Give Up button since we've already given up
+        this.giveUpBtn.disabled = true;
+        this.giveUpBtn.classList.add('disabled-input');
+        
+        // Set the hasGivenUp flag to true
+        this.hasGivenUp = true;
+        
+        // Add a status message to show the user has given up
+        const statusElement = document.createElement('div');
+        statusElement.className = 'status-message';
+        statusElement.textContent = 'You gave up. All answers have been revealed.';
+        statusElement.style.color = '#f44336';
+        statusElement.style.fontWeight = 'bold';
+        statusElement.style.margin = '10px 0';
+        statusElement.style.textAlign = 'center';
+        
+        // Check if we already have a status message and remove it
+        const existingStatus = this.quizPanel.querySelector('.status-message');
+        if (existingStatus) {
+            existingStatus.remove();
         }
+        
+        // Insert the status message before the quiz table
+        this.quizPanel.insertBefore(statusElement, this.quizTable);
+        
+        // Force re-render the quiz to show the revealed answers
+        this.renderQuiz();
     }
 }
 
