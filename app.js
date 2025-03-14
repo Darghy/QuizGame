@@ -324,6 +324,12 @@ class QuizApp {
             // Get button container
             const buttonContainer = document.querySelector('.button-container');
             
+            // Make sure all buttons in the button container properly end the quiz
+            const backButton = buttonContainer.querySelector('button:not(#endQuizBtn)');
+            if (backButton) {
+                backButton.addEventListener('click', () => this.endQuiz(false)); // Pass false to skip confirmation
+            }
+            
             // Clear quiz panel and restructure
             this.quizPanel.innerHTML = '';
             this.quizPanel.appendChild(quizHeader);
@@ -503,17 +509,137 @@ class QuizApp {
     endQuiz(withConfirmation = true) {
         if (!withConfirmation || confirm('Are you sure you want to end the quiz? Your progress will be lost.')) {
             this.stopTimer();
+            
+            // Hide all quiz components
             this.quizPanel.style.display = 'none';
-            this.mainMenu.style.display = 'block'; // Go back to main menu
             
-            // Remove warning class when returning to setup
-            this.timerElement.classList.remove('timer-warning');
+            // Remove fixed header if it exists
+            const quizHeader = document.querySelector('.quiz-header');
+            if (quizHeader) {
+                quizHeader.remove();
+            }
             
-            // If using the fixed timer, remove it when ending the quiz
+            // Remove fixed timer if it exists
             if (document.querySelector('.timer-fixed')) {
                 document.querySelector('.timer-fixed').remove();
             }
+            
+            // Reset the quiz panel structure to its original state
+            this.resetQuizPanel();
+            
+            // Show main menu
+            this.mainMenu.style.display = 'block';
+            
+            // Remove warning class
+            this.timerElement.classList.remove('timer-warning');
         }
+    }
+    
+    // Add this new method to reset the quiz panel to its original structure
+    resetQuizPanel() {
+        // Get the container div
+        const container = document.querySelector('.container');
+        
+        // Create a fresh quiz panel based on the original HTML structure
+        const quizPanel = document.createElement('div');
+        quizPanel.className = 'quiz-panel';
+        quizPanel.style.display = 'none';
+        
+        // Recreate the timer container
+        const timerContainer = document.createElement('div');
+        timerContainer.className = 'timer-container';
+        const timerDiv = document.createElement('div');
+        timerDiv.id = 'timer';
+        timerDiv.textContent = '00:00:00';
+        timerContainer.appendChild(timerDiv);
+        
+        // Recreate the answer input container
+        const answerInputContainer = document.createElement('div');
+        answerInputContainer.className = 'answer-input-container';
+        const answerInput = document.createElement('input');
+        answerInput.type = 'text';
+        answerInput.id = 'answerInput';
+        answerInput.placeholder = 'Type your answer here';
+        const submitButton = document.createElement('button');
+        submitButton.id = 'submitAnswer';
+        submitButton.textContent = 'Submit';
+        answerInputContainer.appendChild(answerInput);
+        answerInputContainer.appendChild(submitButton);
+        
+        // Recreate the progress container
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-container';
+        const progressText = document.createElement('span');
+        progressText.id = 'progressText';
+        progressText.textContent = '0/0 questions answered';
+        progressContainer.appendChild(progressText);
+        
+        // Recreate the quiz table
+        const quizTable = document.createElement('table');
+        quizTable.id = 'quizTable';
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const questionHeader = document.createElement('th');
+        questionHeader.textContent = 'Question';
+        const answerHeader = document.createElement('th');
+        answerHeader.textContent = 'Your Answer';
+        headerRow.appendChild(questionHeader);
+        headerRow.appendChild(answerHeader);
+        thead.appendChild(headerRow);
+        const tbody = document.createElement('tbody');
+        tbody.id = 'quizBody';
+        quizTable.appendChild(thead);
+        quizTable.appendChild(tbody);
+        
+        // Recreate the button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        const endQuizBtn = document.createElement('button');
+        endQuizBtn.id = 'endQuizBtn';
+        endQuizBtn.textContent = 'End Quiz';
+        buttonContainer.appendChild(endQuizBtn);
+        
+        // Add everything to the quiz panel
+        quizPanel.appendChild(timerContainer);
+        quizPanel.appendChild(answerInputContainer);
+        quizPanel.appendChild(progressContainer);
+        quizPanel.appendChild(quizTable);
+        quizPanel.appendChild(buttonContainer);
+        
+        // Find the existing quiz panel and replace it
+        const oldQuizPanel = document.querySelector('.quiz-panel');
+        if (oldQuizPanel) {
+            container.replaceChild(quizPanel, oldQuizPanel);
+        } else {
+            // If for some reason the panel doesn't exist, add it after the pregenerated panel
+            const pregeneratedPanel = document.querySelector('.pregenerated-panel');
+            container.insertBefore(quizPanel, pregeneratedPanel.nextSibling);
+        }
+        
+        // Update the references
+        this.quizPanel = quizPanel;
+        this.timerElement = timerDiv;
+        this.answerInput = answerInput;
+        this.submitAnswerBtn = submitButton;
+        this.progressText = progressText;
+        this.quizTable = quizTable;
+        this.quizBody = tbody;
+        this.endQuizBtn = endQuizBtn;
+        
+        // Re-attach event listeners
+        this.submitAnswerBtn.addEventListener('click', () => this.checkAnswer());
+        this.answerInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.checkAnswer();
+            }
+        });
+        this.answerInput.addEventListener('input', () => {
+            const userAnswer = this.answerInput.value.trim();
+            if (userAnswer.length > 0) {
+                this.checkForExactMatch(userAnswer);
+            }
+        });
+        this.endQuizBtn.addEventListener('click', () => this.endQuiz());
     }
 }
 
