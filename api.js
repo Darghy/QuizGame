@@ -46,11 +46,14 @@ class QuizAPI {
             try {
                 // Extract JSON from the response
                 const jsonMatch = content.match(/\[[\s\S]*\]/);
+                let questions;
                 if (jsonMatch) {
-                    return JSON.parse(jsonMatch[0]);
+                    questions = JSON.parse(jsonMatch[0]);
                 } else {
-                    return JSON.parse(content);
+                    questions = JSON.parse(content);
                 }
+                // Limit to numQuestions
+                return questions.slice(0, numQuestions);
             } catch (parseError) {
                 console.error('Failed to parse response:', parseError);
                 throw new Error('Failed to parse quiz questions');
