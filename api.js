@@ -5,7 +5,7 @@ class QuizAPI {
     }
 
     async generateQuestions(numQuestions, difficulty, topic = '') {
-        const topicPrompt = topic ? ` about ${topic}` : '';
+        const topicPrompt = topic ? ` about ${topic}` : ' covering a variety of random topics';
         const systemPrompt = `You are a quiz generator. Generate ${numQuestions} ${difficulty} difficulty trivia questions${topicPrompt}. 
         Each question should have a clear, specific answer.
         Format your response as a JSON array of objects, each with 'question' and 'answer' fields.
