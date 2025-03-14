@@ -20,7 +20,6 @@ class QuizApp {
         this.timerMinutesInput = document.getElementById('timerMinutes');
         this.timerSecondsInput = document.getElementById('timerSeconds');
         this.generateBtn = document.getElementById('generateBtn');
-        this.loadSavedBtn = document.getElementById('loadSavedBtn');
         this.timerElement = document.getElementById('timer');
         this.answerInput = document.getElementById('answerInput');
         this.submitAnswerBtn = document.getElementById('submitAnswer');
@@ -28,7 +27,6 @@ class QuizApp {
         this.quizTable = document.getElementById('quizTable');
         this.quizBody = document.getElementById('quizBody');
         this.endQuizBtn = document.getElementById('endQuizBtn');
-        this.saveQuizBtn = document.getElementById('saveQuizBtn');
         
         // Initialize event listeners
         this.initEventListeners();
@@ -42,7 +40,6 @@ class QuizApp {
     
     initEventListeners() {
         this.generateBtn.addEventListener('click', () => this.generateQuiz());
-        this.loadSavedBtn.addEventListener('click', () => this.loadSavedQuiz());
         this.submitAnswerBtn.addEventListener('click', () => this.checkAnswer());
         this.answerInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -59,7 +56,6 @@ class QuizApp {
         });
         
         this.endQuizBtn.addEventListener('click', () => this.endQuiz());
-        this.saveQuizBtn.addEventListener('click', () => this.saveQuiz());
     }
     
     async generateQuiz() {
@@ -345,50 +341,6 @@ class QuizApp {
             if (document.querySelector('.timer-fixed')) {
                 document.querySelector('.timer-fixed').remove();
             }
-        }
-    }
-    
-    saveQuiz() {
-        const quizData = {
-            questions: this.questions,
-            answers: this.answers,
-            elapsedTime: this.elapsedTime,
-            timestamp: new Date().toISOString()
-        };
-        
-        localStorage.setItem('savedQuiz', JSON.stringify(quizData));
-        alert('Quiz saved successfully!');
-    }
-    
-    loadSavedQuiz() {
-        const savedQuizData = localStorage.getItem('savedQuiz');
-        
-        if (!savedQuizData) {
-            alert('No saved quiz found');
-            return;
-        }
-        
-        try {
-            const quizData = JSON.parse(savedQuizData);
-            
-            this.questions = quizData.questions;
-            this.answers = quizData.answers;
-            this.elapsedTime = quizData.elapsedTime || 0;
-            
-            // Setup the timer with the saved elapsed time
-            this.startTime = new Date(new Date().getTime() - (this.elapsedTime * 1000));
-            
-            // Hide setup and show quiz
-            this.setupPanel.style.display = 'none';
-            this.quizPanel.style.display = 'block';
-            
-            // Start timer and render quiz
-            this.startTimer();
-            this.renderQuiz();
-            this.answerInput.focus();
-        } catch (error) {
-            alert('Error loading saved quiz');
-            console.error(error);
         }
     }
     

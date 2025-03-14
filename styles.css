@@ -65,17 +65,9 @@ button:hover {
     background-color: #2980b9;
 }
 
-#generateBtn, #loadSavedBtn {
+#generateBtn {
     width: 100%;
     margin-top: 1rem;
-}
-
-#loadSavedBtn {
-    background-color: #7f8c8d;
-}
-
-#loadSavedBtn:hover {
-    background-color: #6c7a7d;
 }
 
 .timer-container {
@@ -157,14 +149,6 @@ tbody tr:hover {
 
 #endQuizBtn:hover {
     background-color: #c0392b;
-}
-
-#saveQuizBtn {
-    background-color: #27ae60;
-}
-
-#saveQuizBtn:hover {
-    background-color: #219653;
 }
 
 #loading {
