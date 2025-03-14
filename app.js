@@ -61,6 +61,14 @@ class QuizApp {
         this.createQuizBtn.addEventListener('click', () => {
             this.mainMenu.style.display = 'none';
             this.setupPanel.style.display = 'block';
+            
+            // Ensure the button container and generate button are visible
+            if (this.generateBtn) {
+                this.generateBtn.style.display = 'inline-block';
+            }
+            if (this.backToMenuBtn) {
+                this.backToMenuBtn.style.display = 'inline-block';
+            }
         });
         
         this.pregeneratedBtn.addEventListener('click', () => {
@@ -557,6 +565,9 @@ class QuizApp {
             // Reset the quiz panel structure to its original state
             this.resetQuizPanel();
             
+            // Ensure the setup panel is properly reset for future use
+            this.resetSetupPanel();
+            
             // Show main menu
             this.mainMenu.style.display = 'block';
             
@@ -685,6 +696,68 @@ class QuizApp {
             }
         });
         this.endQuizBtn.addEventListener('click', () => this.endQuiz());
+    }
+    
+    resetSetupPanel() {
+        // First, get a reference to the setup panel
+        const setupPanel = document.querySelector('.setup-panel');
+        
+        // Check if the button container exists
+        let buttonContainer = setupPanel.querySelector('.button-container');
+        
+        // If it doesn't exist or is malformed, recreate it
+        if (!buttonContainer || !buttonContainer.querySelector('#generateBtn') || !buttonContainer.querySelector('#backToMenuBtn')) {
+            // If the container exists but is missing buttons, remove it first
+            if (buttonContainer) {
+                buttonContainer.remove();
+            }
+            
+            // Create a new button container
+            buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+            
+            // Create the Back button
+            const backBtn = document.createElement('button');
+            backBtn.id = 'backToMenuBtn';
+            backBtn.className = 'secondary-btn';
+            backBtn.textContent = 'Back';
+            backBtn.addEventListener('click', () => {
+                setupPanel.style.display = 'none';
+                this.mainMenu.style.display = 'block';
+            });
+            
+            // Create the Generate Quiz button
+            const generateBtn = document.createElement('button');
+            generateBtn.id = 'generateBtn';
+            generateBtn.textContent = 'Generate Quiz';
+            generateBtn.addEventListener('click', () => this.generateQuiz());
+            
+            // Add the buttons to the container
+            buttonContainer.appendChild(backBtn);
+            buttonContainer.appendChild(generateBtn);
+            
+            // Add the container to the setup panel
+            setupPanel.appendChild(buttonContainer);
+            
+            // Update the class references
+            this.generateBtn = generateBtn;
+            this.backToMenuBtn = backBtn;
+        } else {
+            // If the button container exists but isn't displayed correctly
+            buttonContainer.style.display = 'flex';
+            
+            // Make sure the Generate Quiz button is visible
+            const generateBtn = buttonContainer.querySelector('#generateBtn');
+            if (generateBtn) {
+                generateBtn.style.display = 'inline-block';
+            }
+            
+            // Make sure the Back button is visible
+            const backBtn = buttonContainer.querySelector('#backToMenuBtn');
+            if (backBtn) {
+                backBtn.style.display = 'inline-block';
+            }
+        }
     }
     
     deletePreGeneratedQuiz(index) {
