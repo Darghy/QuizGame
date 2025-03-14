@@ -41,7 +41,7 @@ class QuizApp {
         this.progressText = document.getElementById('progressText');
         this.quizTable = document.getElementById('quizTable');
         this.quizBody = document.getElementById('quizBody');
-        this.endQuizBtn = document.getElementById('endQuizBtn');
+        this.backFromQuizBtn = document.getElementById('backFromQuizBtn');
         
         // Initialize event listeners
         this.initEventListeners();
@@ -112,7 +112,7 @@ class QuizApp {
             }
         });
         
-        this.endQuizBtn.addEventListener('click', () => this.endQuiz());
+        this.backFromQuizBtn.addEventListener('click', () => this.endQuiz());
     }
     
     loadPregeneratedQuizzes() {
@@ -321,15 +321,36 @@ class QuizApp {
         this.totalSeconds = quiz.totalSeconds;
         this.remainingSeconds = this.totalSeconds;
         
-        // Hide pregenerated panel and show quiz
         // Remove the fixed back button if it exists
         const fixedBackBtn = document.querySelector('#fixedBackFromPregeneratedBtn');
         if (fixedBackBtn) {
             fixedBackBtn.remove();
         }
         
+        // First, explicitly hide all other panels
+        this.mainMenu.style.display = 'none';
+        this.setupPanel.style.display = 'none';
         this.pregeneratedPanel.style.display = 'none';
+        
+        // Now show the quiz panel
         this.quizPanel.style.display = 'block';
+        
+        // Make sure any Generate Quiz or Back buttons from the setup panel are hidden 
+        const setupButtons = document.querySelectorAll('.setup-panel button');
+        setupButtons.forEach(button => {
+            if (button.id === 'generateBtn' || button.id === 'backToMenuBtn') {
+                button.style.display = 'none';
+            }
+        });
+        
+        // Ensure that only quiz panel buttons are visible
+        const buttonContainers = document.querySelectorAll('.button-container:not(.quiz-button-container)');
+        buttonContainers.forEach(container => {
+            container.style.display = 'none';
+        });
+        
+        // Make sure the Back button is visible
+        this.ensureBackButtonVisible();
         
         // Start timer and render quiz
         this.startTimer();
@@ -376,38 +397,8 @@ class QuizApp {
             }
         }
         
-        // First render, restructure the quiz panel
-        if (!document.querySelector('.quiz-header')) {
-            // Create quiz header
-            const quizHeader = document.createElement('div');
-            quizHeader.className = 'quiz-header';
-            
-            // Move input and progress to header (timer is now outside)
-            quizHeader.appendChild(document.querySelector('.answer-input-container'));
-            quizHeader.appendChild(document.querySelector('.progress-container'));
-            
-            // Create quiz content container
-            const quizContent = document.createElement('div');
-            quizContent.className = 'quiz-content';
-            
-            // Move table to content container
-            quizContent.appendChild(this.quizTable);
-            
-            // Get button container
-            const buttonContainer = document.querySelector('.button-container');
-            
-            // Make sure all buttons in the button container properly end the quiz
-            const backButton = buttonContainer.querySelector('button:not(#endQuizBtn)');
-            if (backButton) {
-                backButton.addEventListener('click', () => this.endQuiz(false)); // Pass false to skip confirmation
-            }
-            
-            // Clear quiz panel and restructure
-            this.quizPanel.innerHTML = '';
-            this.quizPanel.appendChild(quizHeader);
-            this.quizPanel.appendChild(quizContent);
-            quizContent.appendChild(buttonContainer);
-        }
+        // Ensure the back button is visible
+        this.ensureBackButtonVisible();
         
         this.quizBody.innerHTML = '';
         
@@ -582,7 +573,31 @@ class QuizApp {
     startQuiz() {
         // Hide loading spinner and show quiz
         this.loadingElement.style.display = 'none';
+        
+        // First, explicitly hide all other panels
+        this.mainMenu.style.display = 'none';
+        this.setupPanel.style.display = 'none';
+        this.pregeneratedPanel.style.display = 'none';
+        
+        // Now show the quiz panel
         this.quizPanel.style.display = 'block';
+        
+        // Make sure any Generate Quiz or Back buttons from the setup panel are hidden 
+        const setupButtons = document.querySelectorAll('.setup-panel button');
+        setupButtons.forEach(button => {
+            if (button.id === 'generateBtn' || button.id === 'backToMenuBtn') {
+                button.style.display = 'none';
+            }
+        });
+        
+        // Ensure that only quiz panel buttons are visible
+        const buttonContainers = document.querySelectorAll('.button-container:not(.quiz-button-container)');
+        buttonContainers.forEach(container => {
+            container.style.display = 'none';
+        });
+        
+        // Make sure the Back button is visible
+        this.ensureBackButtonVisible();
         
         // Reset answers array
         this.answers = new Array(this.questions.length).fill('');
@@ -594,7 +609,22 @@ class QuizApp {
         this.answerInput.focus();
     }
     
-    // Add this new method to reset the quiz panel to its original structure
+    updateQuestionDisplay(question) {
+        // Update the current question
+        this.answerInput.value = '';
+        
+        // Check if there's a previously provided answer for this question
+        if (this.answers[this.currentQuestionIndex]) {
+            this.answerInput.value = this.answers[this.currentQuestionIndex];
+        }
+        
+        // Ensure the quiz panel is visible
+        this.quizPanel.style.display = 'block';
+        
+        // Make sure the Back button is visible
+        this.ensureBackButtonVisible();
+    }
+    
     resetQuizPanel() {
         // Get the container div
         const container = document.querySelector('.container');
@@ -650,13 +680,16 @@ class QuizApp {
         quizTable.appendChild(thead);
         quizTable.appendChild(tbody);
         
-        // Recreate the button container
+        // Recreate the button container with specific quiz-button-container class
         const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'button-container';
-        const endQuizBtn = document.createElement('button');
-        endQuizBtn.id = 'endQuizBtn';
-        endQuizBtn.textContent = 'End Quiz';
-        buttonContainer.appendChild(endQuizBtn);
+        buttonContainer.className = 'button-container quiz-button-container';
+        
+        // Add the Back button
+        const backFromQuizBtn = document.createElement('button');
+        backFromQuizBtn.id = 'backFromQuizBtn';
+        backFromQuizBtn.className = 'secondary-btn';
+        backFromQuizBtn.textContent = 'Back to Menu';
+        buttonContainer.appendChild(backFromQuizBtn);
         
         // Add everything to the quiz panel
         quizPanel.appendChild(timerContainer);
@@ -683,7 +716,7 @@ class QuizApp {
         this.progressText = progressText;
         this.quizTable = quizTable;
         this.quizBody = tbody;
-        this.endQuizBtn = endQuizBtn;
+        this.backFromQuizBtn = backFromQuizBtn;
         
         // Re-attach event listeners
         this.submitAnswerBtn.addEventListener('click', () => this.checkAnswer());
@@ -698,7 +731,7 @@ class QuizApp {
                 this.checkForExactMatch(userAnswer);
             }
         });
-        this.endQuizBtn.addEventListener('click', () => this.endQuiz());
+        this.backFromQuizBtn.addEventListener('click', () => this.endQuiz());
     }
     
     resetSetupPanel() {
@@ -814,6 +847,47 @@ class QuizApp {
             this.pregeneratedQuizzes.splice(index, 1);
             this.savePregeneratedQuizzes();
             this.renderPregeneratedQuizzes();
+        }
+    }
+    
+    // Method to ensure the Back to Menu button is always visible during a quiz
+    ensureBackButtonVisible() {
+        // First check if the button exists
+        let backButton = document.getElementById('backFromQuizBtn');
+        
+        // If it doesn't exist, create it
+        if (!backButton) {
+            // Check if we have a quiz button container
+            let buttonContainer = this.quizPanel.querySelector('.quiz-button-container');
+            
+            // If no container, create one
+            if (!buttonContainer) {
+                buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container quiz-button-container';
+                this.quizPanel.appendChild(buttonContainer);
+            }
+            
+            // Create the button
+            backButton = document.createElement('button');
+            backButton.id = 'backFromQuizBtn';
+            backButton.className = 'secondary-btn';
+            backButton.textContent = 'Back to Menu';
+            buttonContainer.appendChild(backButton);
+            
+            // Add event listener
+            backButton.addEventListener('click', () => this.endQuiz());
+            
+            // Update the reference
+            this.backFromQuizBtn = backButton;
+        }
+        
+        // Make sure the button is visible
+        backButton.style.display = 'block';
+        
+        // Make sure the container is visible
+        let buttonContainer = this.quizPanel.querySelector('.quiz-button-container');
+        if (buttonContainer) {
+            buttonContainer.style.display = 'flex';
         }
     }
 }
