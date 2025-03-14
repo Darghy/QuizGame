@@ -414,6 +414,65 @@ class QuizApp {
             }
         }
         
+        // Create fixed quiz input header if it doesn't exist
+        if (!document.querySelector('.quiz-input-fixed')) {
+            // Create the fixed input container
+            const fixedInputContainer = document.createElement('div');
+            fixedInputContainer.className = 'quiz-input-fixed';
+            
+            // Clone the answer input container
+            const answerInputClone = this.quizPanel.querySelector('.answer-input-container').cloneNode(true);
+            
+            // Clone the progress container
+            const progressClone = this.quizPanel.querySelector('.progress-container').cloneNode(true);
+            
+            // Add them to the fixed container
+            fixedInputContainer.appendChild(answerInputClone);
+            fixedInputContainer.appendChild(progressClone);
+            
+            // Add to the body
+            document.body.appendChild(fixedInputContainer);
+            
+            // Hide the original input and progress containers
+            const originalAnswerContainer = this.quizPanel.querySelector('.answer-input-container');
+            if (originalAnswerContainer) {
+                originalAnswerContainer.style.display = 'none';
+            }
+            
+            const originalProgressContainer = this.quizPanel.querySelector('.progress-container');
+            if (originalProgressContainer) {
+                originalProgressContainer.style.display = 'none';
+            }
+            
+            // Update our references to use the new elements
+            this.answerInput = fixedInputContainer.querySelector('#answerInput');
+            this.submitAnswerBtn = fixedInputContainer.querySelector('#submitAnswer');
+            this.progressText = fixedInputContainer.querySelector('#progressText');
+            
+            // Re-attach event listeners to the new elements
+            this.submitAnswerBtn.addEventListener('click', () => this.checkAnswer());
+            this.answerInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    this.checkAnswer();
+                }
+            });
+            this.answerInput.addEventListener('input', () => {
+                const userAnswer = this.answerInput.value.trim();
+                if (userAnswer.length > 0) {
+                    this.checkForExactMatch(userAnswer);
+                }
+            });
+            
+            // Add the class to the quiz table for proper spacing
+            this.quizTable.classList.add('quiz-content-with-fixed-header');
+        } else {
+            // Update the progress text in the fixed header
+            const fixedProgressText = document.querySelector('.quiz-input-fixed #progressText');
+            if (fixedProgressText && this.progressText) {
+                fixedProgressText.textContent = this.progressText.textContent;
+            }
+        }
+        
         // Ensure the back button is visible
         this.ensureBackButtonVisible();
         
@@ -573,6 +632,11 @@ class QuizApp {
         // Remove fixed timer if it exists
         if (document.querySelector('.timer-fixed')) {
             document.querySelector('.timer-fixed').remove();
+        }
+        
+        // Remove fixed quiz input header if it exists
+        if (document.querySelector('.quiz-input-fixed')) {
+            document.querySelector('.quiz-input-fixed').remove();
         }
         
         // Remove any status messages
