@@ -238,11 +238,14 @@ tbody tr:hover {
     gap: 1rem;
     max-width: 400px;
     margin: 0 auto;
+    align-items: center; /* Center buttons horizontally */
 }
 
 .menu-btn {
     padding: 1rem;
     font-size: 1.2rem;
+    width: 100%; /* Make buttons full width of their container */
+    text-align: center;
 }
 
 .pregenerated-panel {

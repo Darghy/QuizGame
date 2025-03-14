@@ -568,6 +568,9 @@ class QuizApp {
             // Ensure the setup panel is properly reset for future use
             this.resetSetupPanel();
             
+            // Reset the main menu to ensure consistent appearance
+            this.resetMainMenu();
+            
             // Show main menu
             this.mainMenu.style.display = 'block';
             
@@ -756,6 +759,49 @@ class QuizApp {
             const backBtn = buttonContainer.querySelector('#backToMenuBtn');
             if (backBtn) {
                 backBtn.style.display = 'inline-block';
+            }
+        }
+    }
+    
+    resetMainMenu() {
+        // First, get a reference to the main menu
+        const mainMenu = document.querySelector('.main-menu');
+        
+        // Check if the main menu exists
+        if (mainMenu) {
+            // Ensure proper styling
+            mainMenu.style.display = 'flex';
+            
+            // Check if buttons exist, if not recreate them
+            let createQuizBtn = mainMenu.querySelector('#createQuizBtn');
+            let pregeneratedBtn = mainMenu.querySelector('#pregeneratedBtn');
+            
+            if (!createQuizBtn) {
+                createQuizBtn = document.createElement('button');
+                createQuizBtn.id = 'createQuizBtn';
+                createQuizBtn.className = 'menu-btn';
+                createQuizBtn.textContent = 'Create New Quiz';
+                createQuizBtn.addEventListener('click', () => {
+                    mainMenu.style.display = 'none';
+                    this.setupPanel.style.display = 'block';
+                    this.resetSetupPanel();
+                });
+                mainMenu.appendChild(createQuizBtn);
+                this.createQuizBtn = createQuizBtn;
+            }
+            
+            if (!pregeneratedBtn) {
+                pregeneratedBtn = document.createElement('button');
+                pregeneratedBtn.id = 'pregeneratedBtn';
+                pregeneratedBtn.className = 'menu-btn';
+                pregeneratedBtn.textContent = 'Pregenerated Quizzes';
+                pregeneratedBtn.addEventListener('click', () => {
+                    mainMenu.style.display = 'none';
+                    this.pregeneratedPanel.style.display = 'block';
+                    this.renderPregeneratedQuizzes();
+                });
+                mainMenu.appendChild(pregeneratedBtn);
+                this.pregeneratedBtn = pregeneratedBtn;
             }
         }
     }
