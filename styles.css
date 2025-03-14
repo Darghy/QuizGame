@@ -271,6 +271,7 @@ tbody tr:hover {
     background-color: #f8f9fa;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
 }
 
 .quiz-card:hover {
@@ -350,4 +351,32 @@ tbody tr:hover {
 
 #fixedBackFromPregeneratedBtn:hover {
     background-color: #6c7a7d;
-} 
+}
+
+/* Add delete button styling for quiz cards */
+.delete-quiz-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    background-color: rgba(255, 0, 0, 0.7);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 14px;
+    z-index: 10;
+}
+
+.quiz-card:hover .delete-quiz-btn {
+    display: flex;
+}
+
+.delete-quiz-btn:hover {
+    background-color: rgba(255, 0, 0, 1);
+}

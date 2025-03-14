@@ -9,6 +9,7 @@ class QuizApp {
         this.remainingSeconds = this.totalSeconds;
         this.isCountdown = true;
         this.pregeneratedQuizzes = [];
+        this.nextQuizNumber = 1; // Global quiz number tracker
         
         // DOM elements - Main Menu
         this.mainMenu = document.querySelector('.main-menu');
@@ -110,6 +111,13 @@ class QuizApp {
         const savedQuizzes = localStorage.getItem('pregeneratedQuizzes');
         if (savedQuizzes) {
             this.pregeneratedQuizzes = JSON.parse(savedQuizzes);
+            
+            // Initialize the nextQuizNumber based on existing quizzes
+            if (this.pregeneratedQuizzes.length > 0) {
+                // Find the highest quiz number + 1
+                const highestQuizNumber = Math.max(...this.pregeneratedQuizzes.map(quiz => quiz.quizNumber || 0));
+                this.nextQuizNumber = highestQuizNumber + 1;
+            }
         }
     }
     
@@ -161,10 +169,28 @@ class QuizApp {
         this.pregeneratedQuizzes.forEach((quiz, index) => {
             const quizCard = document.createElement('div');
             quizCard.className = 'quiz-card';
-            quizCard.addEventListener('click', () => this.startPregeneratedQuiz(index));
+            quizCard.addEventListener('click', (e) => {
+                // Only start quiz if we didn't click on the delete button
+                if (!e.target.closest('.delete-quiz-btn')) {
+                    this.startPregeneratedQuiz(index);
+                }
+            });
+            
+            // Add delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'delete-quiz-btn';
+            deleteBtn.innerHTML = '✕';
+            deleteBtn.title = 'Delete quiz';
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent quiz from starting when clicking delete
+                this.deletePreGeneratedQuiz(index);
+            });
+            quizCard.appendChild(deleteBtn);
             
             const title = document.createElement('h3');
-            title.textContent = `Quiz #${index + 1}`;
+            // Use the stored quiz number if available, otherwise use index + 1
+            const quizNumber = quiz.quizNumber || (index + 1);
+            title.textContent = `Quiz #${quizNumber}`;
             
             const questions = document.createElement('p');
             questions.textContent = `${quiz.questions.length} questions`;
@@ -200,73 +226,65 @@ class QuizApp {
         const numQuestions = parseInt(this.numQuestionsInput.value, 10);
         const difficulty = this.difficultySelect.value;
         const topic = this.topicInput.value.trim();
+        
+        // Calculate total time in seconds
         const minutes = parseInt(this.timerMinutesInput.value, 10) || 0;
         const seconds = parseInt(this.timerSecondsInput.value, 10) || 0;
+        this.totalSeconds = (minutes * 60) + seconds;
         
         if (!apiKey) {
-            alert('Please enter your OpenAI API key');
+            alert('Please enter your OpenAI API key.');
             return;
         }
         
-        if (numQuestions < 1 || numQuestions > 20) {
-            alert('Please enter a number of questions between 1 and 20');
+        if (numQuestions <= 0) {
+            alert('Please enter a valid number of questions.');
             return;
         }
         
-        // Validate timer (minimum 10 seconds, maximum 15 minutes)
-        this.totalSeconds = (minutes * 60) + seconds;
-        if (this.totalSeconds < 10) {
-            alert('Please set a time of at least 10 seconds');
-            return;
-        }
-        if (this.totalSeconds > 900) {
-            alert('Please set a time of maximum 15 minutes');
+        if (this.totalSeconds <= 0) {
+            alert('Please set a time limit greater than 0 seconds.');
             return;
         }
         
-        this.remainingSeconds = this.totalSeconds;
-        
-        // Save API key for convenience
+        // Save API key to localStorage
         localStorage.setItem('quizApiKey', apiKey);
         
         // Show loading spinner
+        this.loadingElement.style.display = 'flex';
         this.setupPanel.style.display = 'none';
-        this.loadingElement.style.display = 'block';
         
         try {
-            // Make sure any existing fixed timer is removed before starting a new one
-            if (document.querySelector('.timer-fixed')) {
-                document.querySelector('.timer-fixed').remove();
-            }
+            // Create an instance of the QuizAPI class
+            const quizApi = new QuizAPI(apiKey);
             
-            const api = new QuizAPI(apiKey);
-            this.questions = await api.generateQuestions(numQuestions, difficulty, topic);
+            // Generate questions
+            const questions = await quizApi.generateQuestions(numQuestions, difficulty, topic);
             
-            // Ensure we only use exactly the requested number of questions
-            if (this.questions.length > numQuestions) {
-                this.questions = this.questions.slice(0, numQuestions);
-            }
+            // Store the quiz data
+            this.questions = questions;
+            this.answers = new Array(questions.length).fill('');
+            this.currentQuestionIndex = 0;
+            this.remainingSeconds = this.totalSeconds;
             
-            // Save this quiz to pregenerated quizzes
-            this.pregeneratedQuizzes.push({
+            // Save to pregenerated quizzes
+            const quizData = {
                 questions: this.questions,
                 difficulty: difficulty,
                 topic: topic,
                 totalSeconds: this.totalSeconds,
-                timestamp: Date.now()
-            });
+                quizNumber: this.nextQuizNumber // Assign the quiz number
+            };
+            
+            this.pregeneratedQuizzes.push(quizData);
             this.savePregeneratedQuizzes();
             
-            this.answers = new Array(this.questions.length).fill('');
+            // Increment the quiz number for next time
+            this.nextQuizNumber++;
             
-            // Hide loading spinner and show quiz
-            this.loadingElement.style.display = 'none';
-            this.quizPanel.style.display = 'block';
+            // Start the quiz
+            this.startQuiz();
             
-            // Start timer and render quiz
-            this.startTimer();
-            this.renderQuiz();
-            this.answerInput.focus();
         } catch (error) {
             alert(`Error generating quiz: ${error.message}`);
             this.loadingElement.style.display = 'none';
@@ -537,6 +555,21 @@ class QuizApp {
         }
     }
     
+    startQuiz() {
+        // Hide loading spinner and show quiz
+        this.loadingElement.style.display = 'none';
+        this.quizPanel.style.display = 'block';
+        
+        // Reset answers array
+        this.answers = new Array(this.questions.length).fill('');
+        this.currentQuestionIndex = 0;
+        
+        // Start timer and render quiz
+        this.startTimer();
+        this.renderQuiz();
+        this.answerInput.focus();
+    }
+    
     // Add this new method to reset the quiz panel to its original structure
     resetQuizPanel() {
         // Get the container div
@@ -642,6 +675,14 @@ class QuizApp {
             }
         });
         this.endQuizBtn.addEventListener('click', () => this.endQuiz());
+    }
+    
+    deletePreGeneratedQuiz(index) {
+        if (confirm('Are you sure you want to delete this quiz?')) {
+            this.pregeneratedQuizzes.splice(index, 1);
+            this.savePregeneratedQuizzes();
+            this.renderPregeneratedQuizzes();
+        }
     }
 }
 
