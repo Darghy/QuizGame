@@ -204,7 +204,7 @@ tbody tr:hover {
 
 .quiz-panel {
     position: relative;
-    padding-top: 160px; /* Adjust based on your header height */
+    padding-top: 20px; /* Adjust based on your header height */
 }
 
 .quiz-header {
