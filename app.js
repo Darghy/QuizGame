@@ -140,7 +140,7 @@ class QuizApp {
             
             const topic = document.createElement('p');
             if (quiz.topic) {
-                topic.textContent = `Topic: ${quiz.topic}`;
+                topic.textContent = quiz.topic;
             } else {
                 topic.textContent = 'Random topics';
             }
