@@ -446,7 +446,7 @@ tbody tr:hover {
 /* Style for revealed answers when giving up */
 .revealed-answer {
     color: #f44336;
-    font-style: italic;
+    font-weight: bold;
 }
 
 /* Style for disabled input after giving up */
