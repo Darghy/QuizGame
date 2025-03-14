@@ -425,3 +425,33 @@ tbody tr:hover {
 #backFromQuizBtn:hover {
     background-color: #3e8e41;
 }
+
+/* Style for the Give Up button */
+#giveUpBtn {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-weight: bold;
+    margin-right: 10px;
+    padding: 8px 16px;
+}
+
+#giveUpBtn:hover {
+    background-color: #d32f2f;
+}
+
+/* Style for revealed answers when giving up */
+.revealed-answer {
+    color: #f44336;
+    font-style: italic;
+}
+
+/* Style for disabled input after giving up */
+.disabled-input {
+    background-color: #f5f5f5;
+    color: #888;
+    cursor: not-allowed;
+}

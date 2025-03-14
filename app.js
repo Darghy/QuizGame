@@ -42,6 +42,10 @@ class QuizApp {
         this.quizTable = document.getElementById('quizTable');
         this.quizBody = document.getElementById('quizBody');
         this.backFromQuizBtn = document.getElementById('backFromQuizBtn');
+        this.giveUpBtn = document.getElementById('giveUpBtn');
+        
+        // Flag to track if the user has given up
+        this.hasGivenUp = false;
         
         // Initialize event listeners
         this.initEventListeners();
@@ -113,6 +117,7 @@ class QuizApp {
         });
         
         this.backFromQuizBtn.addEventListener('click', () => this.endQuiz());
+        this.giveUpBtn.addEventListener('click', () => this.giveUp());
     }
     
     loadPregeneratedQuizzes() {
@@ -412,6 +417,9 @@ class QuizApp {
             if (this.answers[index]) {
                 answerCell.textContent = this.answers[index];
                 answerCell.classList.add('correct-answer');
+            } else if (this.hasGivenUp) {
+                answerCell.textContent = question.answer;
+                answerCell.classList.add('revealed-answer');
             }
             
             row.appendChild(questionCell);
@@ -691,6 +699,13 @@ class QuizApp {
         backFromQuizBtn.textContent = 'Back to Menu';
         buttonContainer.appendChild(backFromQuizBtn);
         
+        // Add the Give Up button
+        const giveUpBtn = document.createElement('button');
+        giveUpBtn.id = 'giveUpBtn';
+        giveUpBtn.className = 'secondary-btn';
+        giveUpBtn.textContent = 'Give Up';
+        buttonContainer.appendChild(giveUpBtn);
+        
         // Add everything to the quiz panel
         quizPanel.appendChild(timerContainer);
         quizPanel.appendChild(answerInputContainer);
@@ -717,6 +732,7 @@ class QuizApp {
         this.quizTable = quizTable;
         this.quizBody = tbody;
         this.backFromQuizBtn = backFromQuizBtn;
+        this.giveUpBtn = giveUpBtn;
         
         // Re-attach event listeners
         this.submitAnswerBtn.addEventListener('click', () => this.checkAnswer());
@@ -732,6 +748,7 @@ class QuizApp {
             }
         });
         this.backFromQuizBtn.addEventListener('click', () => this.endQuiz());
+        this.giveUpBtn.addEventListener('click', () => this.giveUp());
     }
     
     resetSetupPanel() {
@@ -852,42 +869,100 @@ class QuizApp {
     
     // Method to ensure the Back to Menu button is always visible during a quiz
     ensureBackButtonVisible() {
-        // First check if the button exists
+        // First check if the buttons exist
         let backButton = document.getElementById('backFromQuizBtn');
+        let giveUpButton = document.getElementById('giveUpBtn');
         
-        // If it doesn't exist, create it
+        // Check if we have a quiz button container
+        let buttonContainer = this.quizPanel.querySelector('.quiz-button-container');
+        
+        // If no container, create one
+        if (!buttonContainer) {
+            buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container quiz-button-container';
+            this.quizPanel.appendChild(buttonContainer);
+        }
+        
+        // If back button doesn't exist, create it
         if (!backButton) {
-            // Check if we have a quiz button container
-            let buttonContainer = this.quizPanel.querySelector('.quiz-button-container');
-            
-            // If no container, create one
-            if (!buttonContainer) {
-                buttonContainer = document.createElement('div');
-                buttonContainer.className = 'button-container quiz-button-container';
-                this.quizPanel.appendChild(buttonContainer);
-            }
-            
-            // Create the button
             backButton = document.createElement('button');
             backButton.id = 'backFromQuizBtn';
             backButton.className = 'secondary-btn';
             backButton.textContent = 'Back to Menu';
-            buttonContainer.appendChild(backButton);
             
             // Add event listener
             backButton.addEventListener('click', () => this.endQuiz());
+            
+            // Add to container
+            buttonContainer.appendChild(backButton);
             
             // Update the reference
             this.backFromQuizBtn = backButton;
         }
         
-        // Make sure the button is visible
+        // If give up button doesn't exist, create it
+        if (!giveUpButton) {
+            giveUpButton = document.createElement('button');
+            giveUpButton.id = 'giveUpBtn';
+            giveUpButton.className = 'warning-btn';
+            giveUpButton.textContent = 'Give Up';
+            
+            // Insert the give up button before the back button
+            buttonContainer.insertBefore(giveUpButton, backButton);
+            
+            // Add event listener
+            giveUpButton.addEventListener('click', () => this.giveUp());
+            
+            // Update the reference
+            this.giveUpBtn = giveUpButton;
+        }
+        
+        // Make sure the buttons are visible
         backButton.style.display = 'block';
+        giveUpButton.style.display = 'block';
         
         // Make sure the container is visible
-        let buttonContainer = this.quizPanel.querySelector('.quiz-button-container');
-        if (buttonContainer) {
-            buttonContainer.style.display = 'flex';
+        buttonContainer.style.display = 'flex';
+    }
+    
+    giveUp() {
+        if (confirm('Are you sure you want to give up? All remaining answers will be revealed.')) {
+            // Stop the timer
+            this.stopTimer();
+            
+            // Disable the answer input and submit button
+            this.answerInput.disabled = true;
+            this.answerInput.classList.add('disabled-input');
+            this.submitAnswerBtn.disabled = true;
+            this.submitAnswerBtn.classList.add('disabled-input');
+            
+            // Disable the Give Up button since we've already given up
+            this.giveUpBtn.disabled = true;
+            this.giveUpBtn.classList.add('disabled-input');
+            
+            // Set the hasGivenUp flag to true
+            this.hasGivenUp = true;
+            
+            // Add a status message to show the user has given up
+            const statusElement = document.createElement('div');
+            statusElement.className = 'status-message';
+            statusElement.textContent = 'You gave up. All answers have been revealed.';
+            statusElement.style.color = '#f44336';
+            statusElement.style.fontWeight = 'bold';
+            statusElement.style.margin = '10px 0';
+            statusElement.style.textAlign = 'center';
+            
+            // Check if we already have a status message and remove it
+            const existingStatus = this.quizPanel.querySelector('.status-message');
+            if (existingStatus) {
+                existingStatus.remove();
+            }
+            
+            // Insert the status message before the quiz table
+            this.quizPanel.insertBefore(statusElement, this.quizTable);
+            
+            // Force re-render the quiz to show the revealed answers
+            this.renderQuiz();
         }
     }
 }
