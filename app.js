@@ -581,11 +581,22 @@ class QuizApp {
         // Reset the main menu to ensure consistent appearance
         this.resetMainMenu();
         
+        // Hide ALL panels first
+        this.quizPanel.style.display = 'none';
+        this.setupPanel.style.display = 'none';
+        this.pregeneratedPanel.style.display = 'none';
+        
         // Show main menu
         this.mainMenu.style.display = 'block';
         
         // Remove warning class
         this.timerElement.classList.remove('timer-warning');
+        
+        // Ensure all non-main menu button containers are hidden
+        const buttonContainers = document.querySelectorAll('.button-container:not(.main-menu .button-container)');
+        buttonContainers.forEach(container => {
+            container.style.display = 'none';
+        });
     }
     
     startQuiz() {
@@ -702,19 +713,19 @@ class QuizApp {
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'button-container quiz-button-container';
         
-        // Add the Back button
+        // Add the Give Up button first, matching the original HTML structure
+        const giveUpBtn = document.createElement('button');
+        giveUpBtn.id = 'giveUpBtn';
+        giveUpBtn.className = 'warning-btn'; 
+        giveUpBtn.textContent = 'Give Up';
+        buttonContainer.appendChild(giveUpBtn);
+        
+        // Add the Back button second
         const backFromQuizBtn = document.createElement('button');
         backFromQuizBtn.id = 'backFromQuizBtn';
         backFromQuizBtn.className = 'secondary-btn';
         backFromQuizBtn.textContent = 'Back to Menu';
         buttonContainer.appendChild(backFromQuizBtn);
-        
-        // Add the Give Up button
-        const giveUpBtn = document.createElement('button');
-        giveUpBtn.id = 'giveUpBtn';
-        giveUpBtn.className = 'secondary-btn';
-        giveUpBtn.textContent = 'Give Up';
-        buttonContainer.appendChild(giveUpBtn);
         
         // Add everything to the quiz panel
         quizPanel.appendChild(timerContainer);
@@ -893,7 +904,24 @@ class QuizApp {
             this.quizPanel.appendChild(buttonContainer);
         }
         
-        // If back button doesn't exist, create it
+        // Clear the container to ensure consistent order
+        buttonContainer.innerHTML = '';
+        
+        // Create Give Up button first
+        if (!giveUpButton) {
+            giveUpButton = document.createElement('button');
+            giveUpButton.id = 'giveUpBtn';
+            giveUpButton.className = 'warning-btn';
+            giveUpButton.textContent = 'Give Up';
+            
+            // Add event listener
+            giveUpButton.addEventListener('click', () => this.giveUp());
+            
+            // Update the reference
+            this.giveUpBtn = giveUpButton;
+        }
+        
+        // Create Back button
         if (!backButton) {
             backButton = document.createElement('button');
             backButton.id = 'backFromQuizBtn';
@@ -903,33 +931,13 @@ class QuizApp {
             // Add event listener
             backButton.addEventListener('click', () => this.endQuiz());
             
-            // Add to container
-            buttonContainer.appendChild(backButton);
-            
             // Update the reference
             this.backFromQuizBtn = backButton;
         }
         
-        // If give up button doesn't exist, create it
-        if (!giveUpButton) {
-            giveUpButton = document.createElement('button');
-            giveUpButton.id = 'giveUpBtn';
-            giveUpButton.className = 'warning-btn';
-            giveUpButton.textContent = 'Give Up';
-            
-            // Insert the give up button before the back button
-            buttonContainer.insertBefore(giveUpButton, backButton);
-            
-            // Add event listener
-            giveUpButton.addEventListener('click', () => this.giveUp());
-            
-            // Update the reference
-            this.giveUpBtn = giveUpButton;
-        }
-        
-        // Make sure the buttons are visible
-        backButton.style.display = 'block';
-        giveUpButton.style.display = 'block';
+        // Add buttons in the correct order: Give Up first, then Back to Menu
+        buttonContainer.appendChild(giveUpButton);
+        buttonContainer.appendChild(backButton);
         
         // Make sure the container is visible
         buttonContainer.style.display = 'flex';
