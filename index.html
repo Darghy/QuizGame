@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Quiz App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>LLM Quiz Generator</h1>
+        
+        <div class="setup-panel">
+            <div class="form-group">
+                <label for="apiKey">OpenAI API Key:</label>
+                <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
+            </div>
+            <div class="form-group">
+                <label for="numQuestions">Number of Questions:</label>
+                <input type="number" id="numQuestions" min="1" max="50" value="20">
+            </div>
+            <div class="form-group">
+                <label for="difficulty">Difficulty Level:</label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="topic">Topic (optional):</label>
+                <input type="text" id="topic" placeholder="Leave blank for random questions">
+            </div>
+            <div class="form-group">
+                <label for="timerMinutes">Time Allotted:</label>
+                <div class="timer-input-container">
+                    <input type="number" id="timerMinutes" min="0" max="15" value="4" class="timer-input"> 
+                    <span>min</span>
+                    <input type="number" id="timerSeconds" min="0" max="59" value="0" class="timer-input">
+                    <span>sec</span>
+                </div>
+            </div>
+            <button id="generateBtn">Generate Quiz</button>
+            <button id="loadSavedBtn">Load Saved Quiz</button>
+        </div>
+        
+        <div class="quiz-panel" style="display: none;">
+            <div class="timer-container">
+                <div id="timer">00:00:00</div>
+            </div>
+            
+            <div class="answer-input-container">
+                <input type="text" id="answerInput" placeholder="Type your answer here">
+                <button id="submitAnswer">Submit</button>
+            </div>
+            
+            <div class="progress-container">
+                <span id="progressText">0/0 questions answered</span>
+            </div>
+            
+            <table id="quizTable">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Your Answer</th>
+                    </tr>
+                </thead>
+                <tbody id="quizBody">
+                    <!-- Questions and answers will be inserted here -->
+                </tbody>
+            </table>
+            
+            <div class="button-container">
+                <button id="endQuizBtn">End Quiz</button>
+                <button id="saveQuizBtn">Save Quiz</button>
+            </div>
+        </div>
+        
+        <div id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Generating questions...</p>
+        </div>
+    </div>
+    
+    <script src="api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html> 
