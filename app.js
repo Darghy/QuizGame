@@ -101,8 +101,19 @@ class QuizApp {
         this.loadingElement.style.display = 'block';
         
         try {
+            // Make sure any existing fixed timer is removed before starting a new one
+            if (document.querySelector('.timer-fixed')) {
+                document.querySelector('.timer-fixed').remove();
+            }
+            
             const api = new QuizAPI(apiKey);
             this.questions = await api.generateQuestions(numQuestions, difficulty, topic);
+            
+            // Ensure we only use exactly the requested number of questions
+            if (this.questions.length > numQuestions) {
+                this.questions = this.questions.slice(0, numQuestions);
+            }
+            
             this.answers = new Array(this.questions.length).fill('');
             
             // Hide loading spinner and show quiz
@@ -123,22 +134,40 @@ class QuizApp {
     renderQuiz() {
         // First, move the timer element to body if it's not already done
         if (!document.querySelector('.timer-fixed')) {
+            // Get the timer element reference
             const timerElement = document.getElementById('timer');
             
-            // Create a new timer container
-            const fixedTimerContainer = document.createElement('div');
-            fixedTimerContainer.id = 'timer';
-            fixedTimerContainer.className = 'timer-fixed';
-            fixedTimerContainer.textContent = this.timerElement.textContent;
-            
-            // Remove old timer
-            this.timerElement.parentNode.remove();
-            
-            // Add new timer to the body
-            document.body.appendChild(fixedTimerContainer);
-            
-            // Update the timer element reference
-            this.timerElement = fixedTimerContainer;
+            // Only proceed if we have a valid timer element
+            if (timerElement) {
+                // Create a new timer container
+                const fixedTimerContainer = document.createElement('div');
+                fixedTimerContainer.id = 'timer';
+                fixedTimerContainer.className = 'timer-fixed';
+                fixedTimerContainer.textContent = this.timerElement.textContent;
+                
+                // Remove old timer (safely)
+                if (this.timerElement && this.timerElement.parentNode) {
+                    this.timerElement.parentNode.remove();
+                }
+                
+                // Add new timer to the body
+                document.body.appendChild(fixedTimerContainer);
+                
+                // Update the timer element reference
+                this.timerElement = fixedTimerContainer;
+            } else {
+                // Create a new timer if none exists
+                const fixedTimerContainer = document.createElement('div');
+                fixedTimerContainer.id = 'timer';
+                fixedTimerContainer.className = 'timer-fixed';
+                fixedTimerContainer.textContent = "00:00";
+                
+                // Add new timer to the body
+                document.body.appendChild(fixedTimerContainer);
+                
+                // Update the timer element reference
+                this.timerElement = fixedTimerContainer;
+            }
         }
         
         // First render, restructure the quiz panel
