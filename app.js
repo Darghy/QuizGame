@@ -77,6 +77,12 @@ class QuizApp {
         
         // Pregenerated panel
         this.backFromPregeneratedBtn.addEventListener('click', () => {
+            // Remove fixed back button if it exists
+            const fixedBackBtn = document.querySelector('#fixedBackFromPregeneratedBtn');
+            if (fixedBackBtn) {
+                fixedBackBtn.remove();
+            }
+            
             this.pregeneratedPanel.style.display = 'none';
             this.mainMenu.style.display = 'block';
         });
@@ -113,6 +119,34 @@ class QuizApp {
     
     renderPregeneratedQuizzes() {
         this.quizList.innerHTML = '';
+        
+        // Remove existing fixed back button if it exists
+        const existingBackBtn = document.querySelector('#fixedBackFromPregeneratedBtn');
+        if (existingBackBtn) {
+            existingBackBtn.remove();
+        }
+        
+        // Create a fixed position back button directly on the body
+        const fixedBackBtn = document.createElement('button');
+        fixedBackBtn.id = 'fixedBackFromPregeneratedBtn';
+        fixedBackBtn.className = 'secondary-btn fixed-back-btn';
+        fixedBackBtn.textContent = 'Back to Menu';
+        fixedBackBtn.style.position = 'fixed';
+        fixedBackBtn.style.top = '20px';
+        fixedBackBtn.style.left = '20px';
+        fixedBackBtn.style.zIndex = '1000';
+        
+        fixedBackBtn.addEventListener('click', () => {
+            // Remove the fixed button
+            fixedBackBtn.remove();
+            
+            // Hide pregenerated panel and show main menu
+            this.pregeneratedPanel.style.display = 'none';
+            this.mainMenu.style.display = 'block';
+        });
+        
+        // Add the fixed button directly to the body
+        document.body.appendChild(fixedBackBtn);
         
         if (this.pregeneratedQuizzes.length === 0) {
             const emptyMessage = document.createElement('p');
