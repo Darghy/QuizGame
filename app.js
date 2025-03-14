@@ -188,9 +188,12 @@ class QuizApp {
             quizCard.appendChild(deleteBtn);
             
             const title = document.createElement('h3');
-            // Use the stored quiz number if available, otherwise use index + 1
-            const quizNumber = quiz.quizNumber || (index + 1);
-            title.textContent = `Quiz #${quizNumber}`;
+            // Always use the stored quiz number, and ensure every quiz has one
+            if (!quiz.quizNumber) {
+                quiz.quizNumber = index + 1; // Only as a fallback for older quizzes
+                this.savePregeneratedQuizzes(); // Save the updated quiz numbers
+            }
+            title.textContent = `Quiz #${quiz.quizNumber}`;
             
             const questions = document.createElement('p');
             questions.textContent = `${quiz.questions.length} questions`;
@@ -267,13 +270,14 @@ class QuizApp {
             this.currentQuestionIndex = 0;
             this.remainingSeconds = this.totalSeconds;
             
-            // Save to pregenerated quizzes
+            // Save to pregenerated quizzes with a unique quiz number
+            // This number is preserved even if other quizzes are deleted
             const quizData = {
                 questions: this.questions,
                 difficulty: difficulty,
                 topic: topic,
                 totalSeconds: this.totalSeconds,
-                quizNumber: this.nextQuizNumber // Assign the quiz number
+                quizNumber: this.nextQuizNumber // Assign a permanent quiz number
             };
             
             this.pregeneratedQuizzes.push(quizData);
@@ -310,6 +314,12 @@ class QuizApp {
         this.remainingSeconds = this.totalSeconds;
         
         // Hide pregenerated panel and show quiz
+        // Remove the fixed back button if it exists
+        const fixedBackBtn = document.querySelector('#fixedBackFromPregeneratedBtn');
+        if (fixedBackBtn) {
+            fixedBackBtn.remove();
+        }
+        
         this.pregeneratedPanel.style.display = 'none';
         this.quizPanel.style.display = 'block';
         
@@ -679,6 +689,9 @@ class QuizApp {
     
     deletePreGeneratedQuiz(index) {
         if (confirm('Are you sure you want to delete this quiz?')) {
+            // Remove the quiz at the specified index
+            // Note: This doesn't affect the quiz numbers of other quizzes
+            // Each quiz has its own persistent number
             this.pregeneratedQuizzes.splice(index, 1);
             this.savePregeneratedQuizzes();
             this.renderPregeneratedQuizzes();
