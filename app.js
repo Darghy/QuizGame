@@ -454,56 +454,22 @@ class QuizApp {
     isCorrectAnswer(userAnswer, correctAnswer) {
         // Case insensitive comparison
         userAnswer = userAnswer.toLowerCase();
+        correctAnswer = correctAnswer.toLowerCase();
         
         // Direct match
         if (userAnswer === correctAnswer) return true;
         
-        // Allow for minor variations
+        // Allow for article differences (a, an, the)
+        const articles = ['a', 'an', 'the'];
         const userWords = userAnswer.split(/\s+/).filter(word => word.length > 0);
         const correctWords = correctAnswer.split(/\s+/).filter(word => word.length > 0);
         
-        // Check for article differences (a, an, the)
-        const articles = ['a', 'an', 'the'];
         const userWordsNoArticles = userWords.filter(word => !articles.includes(word));
         const correctWordsNoArticles = correctWords.filter(word => !articles.includes(word));
         
         if (userWordsNoArticles.join(' ') === correctWordsNoArticles.join(' ')) return true;
         
-        // Allow for minor spelling differences
-        if (this.levenshteinDistance(userAnswer, correctAnswer) <= 2 && correctAnswer.length > 4) return true;
-        
         return false;
-    }
-    
-    levenshteinDistance(a, b) {
-        const matrix = [];
-        
-        // Increment along the first column of each row
-        for (let i = 0; i <= b.length; i++) {
-            matrix[i] = [i];
-        }
-        
-        // Increment each column in the first row
-        for (let j = 0; j <= a.length; j++) {
-            matrix[0][j] = j;
-        }
-        
-        // Fill in the rest of the matrix
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1, // substitution
-                        matrix[i][j - 1] + 1,     // insertion
-                        matrix[i - 1][j] + 1      // deletion
-                    );
-                }
-            }
-        }
-        
-        return matrix[b.length][a.length];
     }
     
     endQuiz(withConfirmation = true) {
