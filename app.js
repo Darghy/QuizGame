@@ -64,9 +64,18 @@ class QuizApp {
         // Main menu
         this.createQuizBtn.addEventListener('click', () => {
             this.mainMenu.style.display = 'none';
+            
+            // Reset the setup panel to ensure buttons are visible
+            this.resetSetupPanel();
+            
             this.setupPanel.style.display = 'block';
             
             // Ensure the button container and generate button are visible
+            const buttonContainer = this.setupPanel.querySelector('.button-container');
+            if (buttonContainer) {
+                buttonContainer.style.display = 'flex';
+            }
+            
             if (this.generateBtn) {
                 this.generateBtn.style.display = 'inline-block';
             }
@@ -593,9 +602,17 @@ class QuizApp {
         this.timerElement.classList.remove('timer-warning');
         
         // Ensure all non-main menu button containers are hidden
-        const buttonContainers = document.querySelectorAll('.button-container:not(.main-menu .button-container)');
-        buttonContainers.forEach(container => {
-            container.style.display = 'none';
+        const nonMainMenuButtonContainers = document.querySelectorAll('.button-container:not(.main-menu .button-container)');
+        nonMainMenuButtonContainers.forEach(container => {
+            if (!container.closest('.main-menu')) {
+                container.style.display = 'none';
+            }
+        });
+        
+        // Make sure main menu buttons are visible
+        const mainMenuBtns = this.mainMenu.querySelectorAll('button');
+        mainMenuBtns.forEach(btn => {
+            btn.style.display = 'inline-block';
         });
     }
     
@@ -776,62 +793,46 @@ class QuizApp {
         // First, get a reference to the setup panel
         const setupPanel = document.querySelector('.setup-panel');
         
-        // Check if the button container exists
-        let buttonContainer = setupPanel.querySelector('.button-container');
-        
-        // If it doesn't exist or is malformed, recreate it
-        if (!buttonContainer || !buttonContainer.querySelector('#generateBtn') || !buttonContainer.querySelector('#backToMenuBtn')) {
-            // If the container exists but is missing buttons, remove it first
-            if (buttonContainer) {
-                buttonContainer.remove();
-            }
-            
-            // Create a new button container
-            buttonContainer = document.createElement('div');
-            buttonContainer.className = 'button-container';
-            
-            // Create the Back button
-            const backBtn = document.createElement('button');
-            backBtn.id = 'backToMenuBtn';
-            backBtn.className = 'secondary-btn';
-            backBtn.textContent = 'Back';
-            backBtn.addEventListener('click', () => {
-                setupPanel.style.display = 'none';
-                this.mainMenu.style.display = 'block';
-            });
-            
-            // Create the Generate Quiz button
-            const generateBtn = document.createElement('button');
-            generateBtn.id = 'generateBtn';
-            generateBtn.textContent = 'Generate Quiz';
-            generateBtn.addEventListener('click', () => this.generateQuiz());
-            
-            // Add the buttons to the container
-            buttonContainer.appendChild(backBtn);
-            buttonContainer.appendChild(generateBtn);
-            
-            // Add the container to the setup panel
-            setupPanel.appendChild(buttonContainer);
-            
-            // Update the class references
-            this.generateBtn = generateBtn;
-            this.backToMenuBtn = backBtn;
-        } else {
-            // If the button container exists but isn't displayed correctly
-            buttonContainer.style.display = 'flex';
-            
-            // Make sure the Generate Quiz button is visible
-            const generateBtn = buttonContainer.querySelector('#generateBtn');
-            if (generateBtn) {
-                generateBtn.style.display = 'inline-block';
-            }
-            
-            // Make sure the Back button is visible
-            const backBtn = buttonContainer.querySelector('#backToMenuBtn');
-            if (backBtn) {
-                backBtn.style.display = 'inline-block';
-            }
+        // Remove any existing button container
+        const existingButtonContainer = setupPanel.querySelector('.button-container');
+        if (existingButtonContainer) {
+            existingButtonContainer.remove();
         }
+        
+        // Create a new button container
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'button-container';
+        buttonContainer.style.display = 'flex'; // Ensure it's visible
+        
+        // Create the Back button
+        const backBtn = document.createElement('button');
+        backBtn.id = 'backToMenuBtn';
+        backBtn.className = 'secondary-btn';
+        backBtn.textContent = 'Back';
+        backBtn.style.display = 'inline-block';
+        backBtn.addEventListener('click', () => {
+            this.setupPanel.style.display = 'none';
+            this.mainMenu.style.display = 'block';
+        });
+        
+        // Create the Generate Quiz button
+        const generateBtn = document.createElement('button');
+        generateBtn.id = 'generateBtn';
+        generateBtn.className = 'primary-btn';
+        generateBtn.textContent = 'Generate Quiz';
+        generateBtn.style.display = 'inline-block';
+        generateBtn.addEventListener('click', () => this.generateQuiz());
+        
+        // Add the buttons to the container
+        buttonContainer.appendChild(backBtn);
+        buttonContainer.appendChild(generateBtn);
+        
+        // Add the container to the setup panel
+        setupPanel.appendChild(buttonContainer);
+        
+        // Update our references
+        this.backToMenuBtn = backBtn;
+        this.generateBtn = generateBtn;
     }
     
     resetMainMenu() {
