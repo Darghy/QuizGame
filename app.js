@@ -137,16 +137,18 @@ class QuizApp {
         fixedBackBtn.style.zIndex = '1000';
         
         fixedBackBtn.addEventListener('click', () => {
-            // Remove the fixed button
             fixedBackBtn.remove();
-            
-            // Hide pregenerated panel and show main menu
             this.pregeneratedPanel.style.display = 'none';
             this.mainMenu.style.display = 'block';
         });
         
         // Add the fixed button directly to the body
         document.body.appendChild(fixedBackBtn);
+        
+        // Hide the original bottom back button since we now have the fixed one
+        if (this.backFromPregeneratedBtn) {
+            this.backFromPregeneratedBtn.style.display = 'none';
+        }
         
         if (this.pregeneratedQuizzes.length === 0) {
             const emptyMessage = document.createElement('p');
