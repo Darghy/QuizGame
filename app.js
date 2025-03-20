@@ -551,9 +551,22 @@ class QuizApp {
         for (let i = 0; i < this.questions.length; i++) {
             if (this.answers[i]) continue; // Skip already answered questions
             
-            const correctAnswer = this.questions[i].answer.toLowerCase();
-            if (this.isCorrectAnswer(userAnswer, correctAnswer)) {
-                this.answers[i] = this.questions[i].answer;
+            const question = this.questions[i];
+            const correctAnswer = question.answer.toLowerCase();
+            
+            // Get all possible answers (primary + alternatives)
+            const allAcceptableAnswers = [correctAnswer];
+            
+            // Add alternative answers if they exist
+            if (question.alternativeAnswers && Array.isArray(question.alternativeAnswers)) {
+                question.alternativeAnswers.forEach(alt => {
+                    if (alt) allAcceptableAnswers.push(alt.toLowerCase());
+                });
+            }
+            
+            // Check if any of the acceptable answers match
+            if (this.isExactMatch(userAnswer, allAcceptableAnswers)) {
+                this.answers[i] = question.answer; // Store the primary answer for display
                 this.renderQuiz();
                 this.answerInput.value = '';
                 
@@ -576,9 +589,22 @@ class QuizApp {
         for (let i = 0; i < this.questions.length; i++) {
             if (this.answers[i]) continue; // Skip already answered questions
             
-            const correctAnswer = this.questions[i].answer.toLowerCase();
-            if (this.isCorrectAnswer(userAnswer, correctAnswer)) {
-                this.answers[i] = this.questions[i].answer;
+            const question = this.questions[i];
+            const correctAnswer = question.answer.toLowerCase();
+            
+            // Get all possible answers (primary + alternatives)
+            const allAcceptableAnswers = [correctAnswer];
+            
+            // Add alternative answers if they exist
+            if (question.alternativeAnswers && Array.isArray(question.alternativeAnswers)) {
+                question.alternativeAnswers.forEach(alt => {
+                    if (alt) allAcceptableAnswers.push(alt.toLowerCase());
+                });
+            }
+            
+            // Check if any of the acceptable answers match
+            if (this.isExactMatch(userAnswer, allAcceptableAnswers)) {
+                this.answers[i] = question.answer; // Store the primary answer for display
                 this.renderQuiz();
                 this.answerInput.value = '';
                 
@@ -593,23 +619,25 @@ class QuizApp {
         }
     }
     
-    isCorrectAnswer(userAnswer, correctAnswer) {
+    // Method for checking exact matches against any acceptable answer
+    isExactMatch(userAnswer, acceptableAnswers) {
         // Case insensitive comparison
         userAnswer = userAnswer.toLowerCase();
-        correctAnswer = correctAnswer.toLowerCase();
         
-        // Direct match
-        if (userAnswer === correctAnswer) return true;
-        
-        // Allow for article differences (a, an, the)
-        const articles = ['a', 'an', 'the'];
-        const userWords = userAnswer.split(/\s+/).filter(word => word.length > 0);
-        const correctWords = correctAnswer.split(/\s+/).filter(word => word.length > 0);
-        
-        const userWordsNoArticles = userWords.filter(word => !articles.includes(word));
-        const correctWordsNoArticles = correctWords.filter(word => !articles.includes(word));
-        
-        if (userWordsNoArticles.join(' ') === correctWordsNoArticles.join(' ')) return true;
+        for (const correctAnswer of acceptableAnswers) {
+            // Direct match
+            if (userAnswer === correctAnswer) return true;
+            
+            // Allow for article differences (a, an, the)
+            const articles = ['a', 'an', 'the'];
+            const userWords = userAnswer.split(/\s+/).filter(word => word.length > 0);
+            const correctWords = correctAnswer.split(/\s+/).filter(word => word.length > 0);
+            
+            const userWordsNoArticles = userWords.filter(word => !articles.includes(word));
+            const correctWordsNoArticles = correctWords.filter(word => !articles.includes(word));
+            
+            if (userWordsNoArticles.join(' ') === correctWordsNoArticles.join(' ')) return true;
+        }
         
         return false;
     }
@@ -1051,4 +1079,4 @@ class QuizApp {
 // Initialize the app when the page loads
 window.addEventListener('DOMContentLoaded', () => {
     new QuizApp();
-}); 
+});
