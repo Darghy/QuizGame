@@ -1,3 +1,48 @@
+// --- Levenshtein Distance Utility ---
+// (Place this near the top of app.js, before the classes)
+function calculateLevenshteinDistance(a, b) {
+    if (a.length === 0) return b.length;
+    if (b.length === 0) return a.length;
+
+    const matrix = [];
+
+    // increment along the first column of each row
+    for (let i = 0; i <= b.length; i++) {
+        matrix[i] = [i];
+    }
+
+    // increment each column in the first row
+    for (let j = 0; j <= a.length; j++) {
+        matrix[0][j] = j;
+    }
+
+    // Fill in the rest of the matrix
+    for (let i = 1; i <= b.length; i++) {
+        for (let j = 1; j <= a.length; j++) {
+            const cost = b.charAt(i - 1) === a.charAt(j - 1) ? 0 : 1; // cost is 0 if chars are the same
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,      // deletion
+                matrix[i][j - 1] + 1,      // insertion
+                matrix[i - 1][j - 1] + cost // substitution
+            );
+        }
+    }
+
+    return matrix[b.length][a.length];
+}
+
+/**
+ * Checks if a string consists primarily of digits.
+ * Allows only digits (0-9). Add other characters like '.' or '-' if needed,
+ * but for years/counts, digits-only is often sufficient.
+ * @param {string} str The string to check.
+ * @returns {boolean} True if the string contains only digits, false otherwise.
+ */
+function isDigitsOnly(str) {
+    if (!str) return false; // Handle empty or null strings
+    return /^\d+$/.test(str);
+}
+
 // --- StorageManager ---
 class StorageManager {
     constructor(prefix = 'llmTrivia_') {
@@ -124,25 +169,97 @@ class Quiz {
         const normalizedSubmission = this._normalizeString(submittedAnswer);
         if (!normalizedSubmission) return { correct: false, reason: 'Empty answer' };
 
+        let exactMatchFound = false;
+        let matchedIndex = -1;
+        let canonicalMatch = null;
+
+        // --- Pass 1: Check for Exact Matches (Case Insensitive, Trimmed) ---
         for (const index of this._unansweredIndices) {
             const question = this.questions[index];
             const normalizedAnswer = this._normalizeString(question.answer);
             const normalizedAlternatives = question.alternativeAnswers.map(this._normalizeString);
 
             if (normalizedSubmission === normalizedAnswer || normalizedAlternatives.includes(normalizedSubmission)) {
-                this.userAnswers[index] = question.answer; // Store canonical answer
-                this._unansweredIndices.delete(index); // Mark as answered
-
-                // Check for completion
-                if (this._unansweredIndices.size === 0) {
-                    this._endQuiz('completed');
-                }
-
-                return { correct: true, questionIndex: index, canonicalAnswer: question.answer };
+                exactMatchFound = true;
+                matchedIndex = index;
+                canonicalMatch = question.answer; // Store canonical answer
+                break; // Found an exact match, no need to check further questions
             }
         }
 
-        // If loop finishes, no match was found among unanswered questions
+        // --- Pass 2: Check for Fuzzy Matches (Levenshtein) if no exact match found ---
+        if (!exactMatchFound) { // Renamed flag for clarity
+            let fuzzyMatchFound = false; // Use a separate flag for fuzzy pass completion
+
+            for (const index of this._unansweredIndices) {
+                const question = this.questions[index];
+                // Include main answer and alternatives for fuzzy checking
+                const checkTargets = [question.answer, ...question.alternativeAnswers];
+
+                for (const target of checkTargets) {
+                    const normalizedTarget = this._normalizeString(target);
+                    if (!normalizedTarget) continue; // Skip empty targets
+
+                    const distance = calculateLevenshteinDistance(normalizedSubmission, normalizedTarget);
+
+                    // --- Determine if a fuzzy match is acceptable ---
+                    let isAcceptableFuzzyMatch = false;
+                    const isSubmissionNumeric = isDigitsOnly(normalizedSubmission);
+                    const isTargetNumeric = isDigitsOnly(normalizedTarget);
+
+                    if (isSubmissionNumeric && isTargetNumeric) {
+                        // *** Stricter Rule for Numerical Data ***
+                        // Only allow distance 1 IF lengths are the same (catches single char typo like 19l2)
+                        // Disallows off-by-one numbers (1913) or different length numbers (191)
+                        if (distance <= 1 && normalizedSubmission.length === normalizedTarget.length) {
+                             // Stricter check: Could even be distance === 1 if 0 means exact match
+                             // Let's stick to distance <= 1 for now to allow 1 typo fix.
+                             isAcceptableFuzzyMatch = true;
+                             console.log(`Fuzzy numeric match for Q#${index + 1}: "${submittedAnswer}" vs "${target}" (Dist: ${distance}, Len Match)`);
+                        }
+                        // If they are numeric but don't meet the strict criteria, isAcceptableFuzzyMatch remains false
+                    } else {
+                        // *** Original Rule for Non-Numerical Data ***
+                        const thresholdMet = (
+                            (distance === 1) ||
+                            (distance === 2 && normalizedTarget.length > 5) // Allow distance 2 only for longer text
+                        );
+                        if (thresholdMet) {
+                            isAcceptableFuzzyMatch = true;
+                            console.log(`Fuzzy text match for Q#${index + 1}: "${submittedAnswer}" vs "${target}" (Dist: ${distance})`);
+                        }
+                    }
+
+                    // --- Process if an acceptable fuzzy match was found ---
+                    if (isAcceptableFuzzyMatch) {
+                        matchedIndex = index;
+                        canonicalMatch = question.answer; // Always return the canonical answer
+                        fuzzyMatchFound = true; // Signal that a match was found in this pass
+                        break; // Stop checking other targets for this question
+                    }
+                } // End loop through targets (answer + alternatives)
+
+                if (fuzzyMatchFound) {
+                     break; // Stop checking other questions if a fuzzy match was found
+                }
+            } // End loop through unanswered questions
+        } // End Pass 2 (Fuzzy Matching)
+
+
+        // --- Process Result ---
+        if (matchedIndex !== -1 && canonicalMatch !== null) {
+            // ... (rest of the success logic: update userAnswers, _unansweredIndices, check completion, return correct) ...
+             this.userAnswers[matchedIndex] = canonicalMatch;
+             this._unansweredIndices.delete(matchedIndex);
+
+             if (this._unansweredIndices.size === 0) {
+                 this._endQuiz('completed');
+             }
+
+             return { correct: true, questionIndex: matchedIndex, canonicalAnswer: canonicalMatch };
+        }
+
+        // If no match (exact or fuzzy) was found
         return { correct: false, reason: 'Incorrect' };
     }
 
@@ -560,17 +677,14 @@ class AppController {
     }
 
     _navigate(viewId) {
+         // *** MODIFIED: Removed confirmation logic ***
          if (this.activeQuiz && !this.activeQuiz.isComplete && !this.activeQuiz.isGivenUp && viewId !== 'quiz') {
-             const leave = this.ui.showConfirmation("You have an active quiz in progress. Are you sure you want to leave? Progress will be lost.");
-             if (!leave) {
-                 return; // Stay in the quiz view
-             }
-             // If leaving, treat it as aborting the quiz
-             this.activeQuiz._endQuiz('aborted'); // Use internal method to signal abortion without full completion state
-             this.activeQuiz = null; // Discard the active quiz state
-         }
-         this.ui.showView(viewId);
-    }
+            // If leaving an active quiz, treat it as aborting
+            this.activeQuiz._endQuiz('aborted'); // Use internal method to signal abortion without full completion state
+            this.activeQuiz = null; // Discard the active quiz state
+        }
+        this.ui.showView(viewId);
+   }
 
      _handleApiKeyInput(key) {
         const trimmedKey = key.trim();
@@ -754,16 +868,14 @@ class AppController {
 
     _handleGiveUp() {
         if (this.activeQuiz && !this.activeQuiz.isComplete && !this.activeQuiz.isGivenUp) {
-            const confirmGiveUp = this.ui.showConfirmation('Are you sure you want to give up? All answers will be revealed.');
-            if (confirmGiveUp) {
-                this.activeQuiz.giveUp();
-            }
+            // *** MODIFIED: Removed confirmation ***
+            this.activeQuiz.giveUp();
         }
     }
 
     _handleEndQuizEarly() {
-         // Navigate function already handles confirmation and abortion
-         this._navigate('mainMenu');
+        // Navigate function now handles abortion without confirmation
+        this._navigate('mainMenu');
     }
 }
 

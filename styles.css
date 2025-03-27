@@ -290,7 +290,7 @@ button[data-action="give-up"]:hover {
 }
 #questionTable td:nth-child(3).revealed-answer {
     font-style: italic;
-    color: #007bff; /* Style for revealed answers */
+    color: #e42121; /* Style for revealed answers */
 }
 #questionTable td:nth-child(3).user-answer {
     font-weight: bold; /* Style for user's correct answers */
