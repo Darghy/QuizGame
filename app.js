@@ -188,19 +188,16 @@ class Quiz {
         }
 
         // --- Pass 2: Check for Fuzzy Matches (Levenshtein) if no exact match found ---
-        if (!exactMatchFound) { // Renamed flag for clarity
-            let fuzzyMatchFound = false; // Use a separate flag for fuzzy pass completion
+        if (!exactMatchFound) {
+            let fuzzyMatchFound = false;
 
             for (const index of this._unansweredIndices) {
                 const question = this.questions[index];
-                // Include main answer and alternatives for fuzzy checking
                 const checkTargets = [question.answer, ...question.alternativeAnswers];
 
                 for (const target of checkTargets) {
                     const normalizedTarget = this._normalizeString(target);
-                    if (!normalizedTarget) continue; // Skip empty targets
-
-                    const distance = calculateLevenshteinDistance(normalizedSubmission, normalizedTarget);
+                    if (!normalizedTarget) continue;
 
                     // --- Determine if a fuzzy match is acceptable ---
                     let isAcceptableFuzzyMatch = false;
@@ -208,54 +205,64 @@ class Quiz {
                     const isTargetNumeric = isDigitsOnly(normalizedTarget);
 
                     if (isSubmissionNumeric && isTargetNumeric) {
-                        // *** Stricter Rule for Numerical Data ***
-                        // Only allow distance 1 IF lengths are the same (catches single char typo like 19l2)
-                        // Disallows off-by-one numbers (1913) or different length numbers (191)
-                        if (distance <= 1 && normalizedSubmission.length === normalizedTarget.length) {
-                             // Stricter check: Could even be distance === 1 if 0 means exact match
-                             // Let's stick to distance <= 1 for now to allow 1 typo fix.
+                        // *** CORRECTED Strictest Rule for Numerical Data: Exact Match ONLY ***
+                        // We are in the fuzzy pass, meaning an exact match wasn't found in Pass 1.
+                        // Therefore, for number vs number comparisons, no fuzzy match is allowed here.
+                        // The distance must be 0, which would have been caught earlier.
+                        // So, isAcceptableFuzzyMatch remains false.
+                        // (No code needed here, the default is false)
+
+                        // --- Previous incorrect logic removed ---
+                        // if (distance <= 1 && normalizedSubmission.length === normalizedTarget.length) {
+                        //     isAcceptableFuzzyMatch = true;
+                        //     console.log(`Fuzzy numeric match for Q#${index + 1}: "${submittedAnswer}" vs "${target}" (Dist: ${distance}, Len Match)`);
+                        // }
+
+                    } else if (!isSubmissionNumeric && !isTargetNumeric) {
+                         // *** Rule for Text vs Text Data ***
+                         const distance = calculateLevenshteinDistance(normalizedSubmission, normalizedTarget);
+                         const thresholdMet = (
+                             (distance === 1) ||
+                             (distance === 2 && normalizedTarget.length > 5)
+                         );
+                         if (thresholdMet) {
                              isAcceptableFuzzyMatch = true;
-                             console.log(`Fuzzy numeric match for Q#${index + 1}: "${submittedAnswer}" vs "${target}" (Dist: ${distance}, Len Match)`);
-                        }
-                        // If they are numeric but don't meet the strict criteria, isAcceptableFuzzyMatch remains false
-                    } else {
-                        // *** Original Rule for Non-Numerical Data ***
-                        const thresholdMet = (
-                            (distance === 1) ||
-                            (distance === 2 && normalizedTarget.length > 5) // Allow distance 2 only for longer text
-                        );
-                        if (thresholdMet) {
-                            isAcceptableFuzzyMatch = true;
-                            console.log(`Fuzzy text match for Q#${index + 1}: "${submittedAnswer}" vs "${target}" (Dist: ${distance})`);
-                        }
-                    }
+                             console.log(`Fuzzy text match for Q#${index + 1}: "${submittedAnswer}" vs "${target}" (Dist: ${distance})`);
+                         }
+                     } else {
+                         // *** Case: Text vs Number or Number vs Text ***
+                         // Generally, we don't want fuzzy matching between types.
+                         // e.g., "one nine one two" vs "1912" will have a large distance anyway.
+                         // If a specific conversion is needed (e.g., "1st" vs "first"), it might
+                         // require more sophisticated parsing or explicit alternative answers.
+                         // For now, we don't allow fuzzy matching across these types.
+                         // isAcceptableFuzzyMatch remains false.
+                         // console.log(`Skipping fuzzy check between numeric and non-numeric: "${normalizedSubmission}" vs "${normalizedTarget}"`);
+                     }
+
 
                     // --- Process if an acceptable fuzzy match was found ---
                     if (isAcceptableFuzzyMatch) {
                         matchedIndex = index;
-                        canonicalMatch = question.answer; // Always return the canonical answer
-                        fuzzyMatchFound = true; // Signal that a match was found in this pass
-                        break; // Stop checking other targets for this question
+                        canonicalMatch = question.answer;
+                        fuzzyMatchFound = true;
+                        break;
                     }
-                } // End loop through targets (answer + alternatives)
+                } // End loop through targets
 
                 if (fuzzyMatchFound) {
-                     break; // Stop checking other questions if a fuzzy match was found
+                     break;
                 }
-            } // End loop through unanswered questions
-        } // End Pass 2 (Fuzzy Matching)
+            } // End loop through questions
+        } // End Pass 2
 
 
         // --- Process Result ---
         if (matchedIndex !== -1 && canonicalMatch !== null) {
-            // ... (rest of the success logic: update userAnswers, _unansweredIndices, check completion, return correct) ...
+            // ... (Success logic remains the same) ...
              this.userAnswers[matchedIndex] = canonicalMatch;
              this._unansweredIndices.delete(matchedIndex);
-
-             if (this._unansweredIndices.size === 0) {
-                 this._endQuiz('completed');
-             }
-
+             if (this._unansweredIndices.size === 0) { this._endQuiz('completed'); }
              return { correct: true, questionIndex: matchedIndex, canonicalAnswer: canonicalMatch };
         }
 
