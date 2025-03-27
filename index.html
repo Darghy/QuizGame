@@ -3,104 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Quiz App</title>
+    <title>LLM Trivia Quiz</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>LLM Quiz Generator</h1>
-        
-        <!-- Main Menu -->
-        <div class="main-menu">
-            <button id="createQuizBtn" class="menu-btn">Create New Quiz</button>
-            <button id="pregeneratedBtn" class="menu-btn">Pregenerated Quizzes</button>
-        </div>
-        
-        <!-- Quiz Setup Panel -->
-        <div class="setup-panel" style="display: none;">
+
+    <div id="globalError" class="error-message" style="display: none;"></div>
+
+    <!-- Main Menu View -->
+    <div id="view-main-menu" class="view active-view">
+        <h1>LLM Trivia Quiz</h1>
+        <button data-action="show-setup">Create New Quiz</button>
+        <button data-action="show-pregenerated">Saved Quizzes</button>
+    </div>
+
+    <!-- Quiz Setup View -->
+    <div id="view-setup" class="view">
+        <h2>Quiz Setup</h2>
+        <form id="setupForm">
             <div class="form-group">
-                <label for="apiKey">OpenAI API Key:</label>
-                <input type="password" id="apiKey" placeholder="Enter your OpenAI API key">
+                <label for="apiKeyInput">OpenAI API Key:</label>
+                <input type="password" id="apiKeyInput" required placeholder="sk-...">
+                <small>Your key is saved locally in your browser and never sent anywhere except OpenAI.</small>
             </div>
             <div class="form-group">
-                <label for="numQuestions">Number of Questions:</label>
-                <input type="number" id="numQuestions" min="1" max="50" value="10">
+                <label for="numQuestionsInput">Number of Questions:</label>
+                <input type="number" id="numQuestionsInput" value="5" min="1" max="20" required>
             </div>
             <div class="form-group">
-                <label for="difficulty">Difficulty Level:</label>
-                <select id="difficulty">
+                <label for="difficultyInput">Difficulty:</label>
+                <select id="difficultyInput">
                     <option value="easy">Easy</option>
                     <option value="medium" selected>Medium</option>
                     <option value="hard">Hard</option>
+                    <option value="any">Any</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="topic">Topic (optional):</label>
-                <input type="text" id="topic" placeholder="Leave blank for random questions">
+                <label for="topicInput">Topic (Optional):</label>
+                <input type="text" id="topicInput" placeholder="e.g., World History, Science Fiction Movies">
             </div>
             <div class="form-group">
-                <label for="timerMinutes">Time Allotted:</label>
-                <div class="timer-input-container">
-                    <input type="number" id="timerMinutes" min="0" max="15" value="4" class="timer-input"> 
-                    <span>min</span>
-                    <input type="number" id="timerSeconds" min="0" max="59" value="0" class="timer-input">
-                    <span>sec</span>
-                </div>
+                <label>Time Limit:</label>
+                <input type="number" id="timeLimitMinutesInput" value="5" min="0" max="60" required> Minutes
+                <input type="number" id="timeLimitSecondsInput" value="0" min="0" max="59" required> Seconds
+                <small id="timeLimitError" class="error-message" style="display: none;">Time limit must be greater than 0 seconds.</small>
             </div>
-            <div class="button-container">
-                <button id="backToMenuBtn" class="secondary-btn">Back</button>
-                <button id="generateBtn">Generate Quiz</button>
+            <div class="button-group">
+                <button type="button" data-action="show-main-menu">Back</button>
+                <button type="submit" id="generateQuizBtn">Generate Quiz</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Loading View -->
+    <div id="view-loading" class="view">
+        <div class="spinner"></div>
+        <p id="loadingMessage">Generating your quiz...</p>
+    </div>
+
+    <!-- Saved Quizzes View -->
+    <div id="view-pregenerated" class="view">
+        <h2>Saved Quizzes</h2>
+        <div id="savedQuizList">
+            <!-- Saved quizzes will be rendered here -->
+            <p id="noSavedQuizzesMessage" style="display: none;">No quizzes saved yet.</p>
+        </div>
+        <button type="button" data-action="show-main-menu">Back</button>
+    </div>
+
+    <!-- Active Quiz View -->
+    <div id="view-quiz" class="view">
+        <div class="quiz-header">
+            <div class="quiz-stats">
+                <span>Timer: <span id="quizTimerDisplay">--:--:--</span></span>
+                <span>Progress: <span id="quizProgressDisplay">0/0</span></span>
+            </div>
+            <div id="quizStatusMessage" class="status-message"></div>
+            <div class="answer-area">
+                <input type="text" id="quizAnswerInput" placeholder="Type your answer..." disabled>
+                <button id="submitAnswerBtn" data-action="submit-answer" disabled>Submit</button>
             </div>
         </div>
-        
-        <!-- Pregenerated Quizzes Panel -->
-        <div class="pregenerated-panel" style="display: none;">
-            <h2>Pregenerated Quizzes</h2>
-            <div id="quizList" class="quiz-list">
-                <!-- Quiz cards will be inserted here -->
-            </div>
-            <button id="backFromPregeneratedBtn" class="secondary-btn">Back to Menu</button>
-        </div>
-        
-        <!-- Active Quiz Panel -->
-        <div class="quiz-panel" style="display: none;">
-            <div class="timer-container">
-                <div id="timer">00:00:00</div>
-            </div>
-            
-            <div class="answer-input-container">
-                <input type="text" id="answerInput" placeholder="Type your answer here">
-                <button id="submitAnswer">Submit</button>
-            </div>
-            
-            <div class="progress-container">
-                <span id="progressText">0/0 questions answered</span>
-            </div>
-            
-            <table id="quizTable">
+
+        <div class="quiz-content">
+            <table id="questionTable">
                 <thead>
                     <tr>
+                        <th>#</th>
                         <th>Question</th>
                         <th>Your Answer</th>
                     </tr>
                 </thead>
-                <tbody id="quizBody">
-                    <!-- Questions and answers will be inserted here -->
+                <tbody id="questionTableBody">
+                    <!-- Questions will be rendered here -->
                 </tbody>
             </table>
-            
-            <div class="button-container quiz-button-container">
-                <button id="giveUpBtn" class="warning-btn">Give Up</button>
-                <button id="backFromQuizBtn" class="secondary-btn">Back to Menu</button>
-            </div>
         </div>
-        
-        <div id="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p>Generating questions...</p>
+
+        <div class="quiz-footer">
+            <button data-action="give-up">Give Up & Reveal Answers</button>
+            <button data-action="end-quiz">End Quiz & Back to Menu</button>
         </div>
     </div>
-    
+
+    <!-- Templates (Hidden) -->
+    <template id="savedQuizCardTemplate">
+        <div class="quiz-card" data-quiz-id="">
+             <button class="delete-quiz-btn" title="Delete Quiz" data-action="delete-quiz">×</button>
+            <h3>Quiz #<span class="quiz-card-number"></span></h3>
+            <p>Questions: <span class="quiz-card-count"></span></p>
+            <p>Time: <span class="quiz-card-time"></span></p>
+            <p>Difficulty: <span class="quiz-card-difficulty"></span></p>
+            <p>Topic: <span class="quiz-card-topic"></span></p>
+            <button class="start-quiz-btn" data-action="start-saved-quiz">Start Quiz</button>
+        </div>
+    </template>
+
     <script src="api.js"></script>
     <script src="app.js"></script>
 </body>

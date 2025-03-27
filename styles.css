@@ -1,506 +1,306 @@
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
+/* Basic Reset & Body */
 body {
-    background-color: #f5f7fa;
+    font-family: sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
     color: #333;
-    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-.container {
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 1.5rem;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    color: #2c3e50;
-}
-
-.setup-panel, .quiz-panel {
-    padding: 1rem;
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-input, select {
+/* View Management */
+.view {
+    display: none; /* Hidden by default */
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
+    max-width: 800px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+.active-view {
+    display: block; /* Shown when active */
+}
+
+/* Global Error Message */
+.error-message {
+    color: #d9534f;
+    background-color: #f2dede;
+    border: 1px solid #ebccd1;
+    padding: 10px;
     border-radius: 4px;
-    font-size: 1rem;
+    margin-bottom: 15px;
+    width: 100%;
+    max-width: 800px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* Headings and Buttons */
+h1, h2 {
+    text-align: center;
+    color: #0056b3;
 }
 
 button {
-    background-color: #3498db;
-    color: white;
+    padding: 10px 15px;
+    margin: 5px;
     border: none;
-    padding: 0.75rem 1.5rem;
     border-radius: 4px;
+    background-color: #007bff;
+    color: white;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: background-color 0.2s;
-    margin-top: 0.5rem;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
 }
 
 button:hover {
-    background-color: #2980b9;
+    background-color: #0056b3;
 }
 
-#generateBtn {
-    width: 100%;
-    margin-top: 1rem;
+button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }
 
-.timer-container {
-    text-align: center;
-    margin-bottom: 1rem;
+button[data-action="show-main-menu"],
+button[data-action="end-quiz"] {
+    background-color: #6c757d;
+}
+button[data-action="show-main-menu"]:hover,
+button[data-action="end-quiz"]:hover {
+    background-color: #5a6268;
 }
 
-#timer {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #2c3e50;
-    background-color: #f1f2f6;
-    display: inline-block;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+button[data-action="give-up"] {
+    background-color: #dc3545;
+}
+button[data-action="give-up"]:hover {
+    background-color: #c82333;
 }
 
-.answer-input-container {
-    display: flex;
-    margin-bottom: 1.5rem;
-}
-
-#answerInput {
-    flex: 1;
-    padding: 0.75rem;
-    font-size: 1rem;
-    border: 2px solid #3498db;
-}
-
-#submitAnswer {
-    margin-top: 0;
-    margin-left: 0.5rem;
-}
-
-.progress-container {
-    text-align: center;
-    margin-bottom: 1rem;
-}
-
-#progressText {
-    font-size: 1.1rem;
-    color: #34495e;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1.5rem;
-}
-
-th, td {
-    padding: 1rem;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-
-th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
-
-tbody tr:hover {
-    background-color: #f8f9fa;
-}
-
-.correct-answer {
-    color: #27ae60;
-    font-weight: 500;
-}
-
-.button-container {
+.button-group {
     display: flex;
     justify-content: space-between;
+    margin-top: 20px;
 }
 
-#endQuizBtn {
-    background-color: #e74c3c;
+/* Form Styling */
+#setupForm .form-group {
+    margin-bottom: 15px;
 }
 
-#endQuizBtn:hover {
-    background-color: #c0392b;
+#setupForm label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
 }
 
-#loading {
+#setupForm input[type="text"],
+#setupForm input[type="number"],
+#setupForm input[type="password"],
+#setupForm select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding and border in element's total width */
+}
+#setupForm input[type="number"] {
+     width: 80px; /* Smaller width for number inputs */
+     margin-right: 5px;
+}
+#setupForm small {
+    display: block;
+    margin-top: 5px;
+    color: #666;
+    font-size: 0.9em;
+}
+#timeLimitError.error-message {
+    display: block;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 5px;
+}
+
+
+/* Loading View */
+#view-loading {
     text-align: center;
-    margin: 2rem 0;
 }
-
 .spinner {
     border: 4px solid rgba(0, 0, 0, 0.1);
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border-left-color: #3498db;
+    border-left-color: #007bff;
+    margin: 20px auto;
     animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
 }
-
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
 }
 
-.timer-input-container {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.timer-input {
-    width: 4rem;
-    text-align: center;
-}
-
-.timer-warning {
-    color: #e74c3c;
-}
-
-.quiz-panel {
-    position: relative;
-    padding-top: 20px; /* Adjust based on your header height */
-    z-index: 10; /* Ensure quiz panel is on top */
-}
-
-.quiz-panel .button-container {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: center;
-}
-
-.setup-panel, .main-menu, .pregenerated-panel {
-    z-index: 5; /* Lower z-index than quiz panel */
-}
-
-.quiz-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background-color: white;
-    padding: 1rem;
-    z-index: 100;
-    border-bottom: 1px solid #ddd;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.quiz-content {
-    overflow-y: auto;
-    width: 100%;
-}
-
-@media (min-width: 900px) {
-    .quiz-header {
-        width: 900px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-}
-
-.timer-fixed {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    z-index: 1000;
-    font-size: 2rem;
-    font-weight: bold;
-    color: #2c3e50;
-    background-color: rgba(241, 242, 246, 0.9);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-/* Add these styles for the pregenerated quizzes feature */
-
-.main-menu {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    max-width: 400px;
-    margin: 0 auto;
-    align-items: center; /* Center buttons horizontally */
-}
-
-.menu-btn {
-    padding: 1rem;
-    font-size: 1.2rem;
-    width: 100%; /* Make buttons full width of their container */
-    text-align: center;
-}
-
-.pregenerated-panel {
-    position: relative;
-    padding-top: 60px; /* Make space for the top button */
-}
-
-.pregenerated-panel h2 {
-    margin-top: 10px; /* Adjust heading to account for button */
-    text-align: center;
-    margin-bottom: 1.5rem;
-    color: #2c3e50;
-}
-
-.quiz-list {
+/* Saved Quizzes View */
+#savedQuizList {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    gap: 15px;
+    margin-bottom: 20px;
 }
-
 .quiz-card {
     border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
+    padding: 15px;
+    border-radius: 6px;
+    background-color: #f9f9f9;
+    position: relative; /* For positioning delete button */
 }
-
-.quiz-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
 .quiz-card h3 {
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
 }
-
 .quiz-card p {
-    margin: 0.2rem 0;
-    color: #34495e;
+    margin: 5px 0;
+    font-size: 0.95em;
+}
+.quiz-card .delete-quiz-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: transparent;
+    color: #aaa;
+    border: none;
+    font-size: 1.5em;
+    line-height: 1;
+    padding: 0 5px;
+    cursor: pointer;
+    opacity: 0; /* Hidden by default */
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+.quiz-card:hover .delete-quiz-btn {
+    opacity: 1; /* Show on hover */
+}
+.quiz-card .delete-quiz-btn:hover {
+    color: #dc3545;
+}
+.quiz-card .start-quiz-btn {
+    margin-top: 10px;
+    width: 100%;
+}
+.quiz-card span { font-weight: normal; color: #555; }
+.quiz-card .quiz-card-topic:empty::before {
+    content: 'General';
+    font-style: italic;
+    color: #888;
 }
 
-.quiz-card .tag {
-    display: inline-block;
-    background-color: #3498db;
-    color: white;
-    font-size: 0.8rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-    margin-right: 0.3rem;
-    margin-top: 0.5rem;
+
+/* Active Quiz View */
+.quiz-header {
+    position: sticky;
+    top: 0;
+    background-color: #ffffff;
+    padding: 15px 0; /* Padding only top/bottom */
+    border-bottom: 2px solid #eee;
+    z-index: 10;
+    margin: -20px -20px 20px -20px; /* Extend to view edges */
+    padding-left: 20px; /* Restore padding */
+    padding-right: 20px; /* Restore padding */
 }
 
-.secondary-btn {
-    background-color: #7f8c8d;
-}
-
-.secondary-btn:hover {
-    background-color: #6c7a7d;
-}
-
-.button-container {
+.quiz-stats {
     display: flex;
     justify-content: space-between;
-    margin-top: 1rem;
-}
-
-#generateBtn {
-    flex: 1;
-}
-
-#backToMenuBtn {
-    margin-right: 1rem;
-}
-
-#backFromPregeneratedBtn {
-    display: block;
-    margin: 0 auto;
-}
-
-.top-back-btn {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    z-index: 10;
-    margin: 0;
-}
-
-#fixedBackFromPregeneratedBtn {
-    position: fixed !important;
-    top: 20px !important;
-    left: 20px !important;
-    z-index: 1000 !important;
-    background-color: #7f8c8d;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    border: none;
-}
-
-#fixedBackFromPregeneratedBtn:hover {
-    background-color: #6c7a7d;
-}
-
-/* Add delete button styling for quiz cards */
-.delete-quiz-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 24px;
-    height: 24px;
-    background-color: rgba(255, 0, 0, 0.7);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    display: none;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
+    margin-bottom: 10px;
     font-weight: bold;
-    font-size: 14px;
-    z-index: 10;
+}
+.quiz-stats span { margin: 0 10px; }
+#quizTimerDisplay.timer-low {
+    color: #dc3545;
+    font-weight: bold;
 }
 
-.quiz-card:hover .delete-quiz-btn {
+.answer-area {
     display: flex;
+    gap: 10px;
 }
-
-.delete-quiz-btn:hover {
-    background-color: rgba(255, 0, 0, 1);
-}
-
-/* Style the quiz-button-container to ensure it's always visible */
-.quiz-button-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-    margin-bottom: 20px;
+#quizAnswerInput {
+    flex-grow: 1;
     padding: 10px;
-    width: 100%;
-}
-
-.quiz-button-container button {
-    min-width: 150px;
-    font-size: 1rem;
-    padding: 10px 15px;
-}
-
-/* Make the Back to Menu button more prominent */
-#backFromQuizBtn {
-    background-color: #4CAF50;
-    color: white;
-    border: none;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+}
+#quizAnswerInput.input-error {
+    border-color: #dc3545;
+    animation: shake 0.3s;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.status-message {
+    min-height: 1.2em; /* Reserve space */
+    margin-bottom: 10px;
+    text-align: center;
     font-weight: bold;
 }
+.status-message.success { color: #28a745; }
+.status-message.error { color: #dc3545; }
+.status-message.info { color: #17a2b8; }
 
-#backFromQuizBtn:hover {
-    background-color: #3e8e41;
+.quiz-content {
+    /* Make content scrollable below sticky header */
+    /* Height calculation might need adjustment based on header height */
+    max-height: calc(100vh - 250px); /* Adjust 250px as needed */
+    overflow-y: auto;
 }
 
-/* Style for the Give Up button */
-#giveUpBtn {
-    background-color: #f44336;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    font-weight: bold;
-    margin-right: 10px;
-    padding: 8px 16px;
-}
-
-#giveUpBtn:hover {
-    background-color: #d32f2f;
-}
-
-/* Style for revealed answers when giving up */
-.revealed-answer {
-    color: #f44336;
-    font-weight: bold;
-}
-
-/* Style for disabled input after giving up */
-.disabled-input {
-    background-color: #f5f5f5;
-    color: #888;
-    cursor: not-allowed;
-}
-
-/* Quiz answer input fixed header */
-.quiz-input-fixed {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background-color: white;
-    padding: 1rem;
-    z-index: 900; /* High z-index but less than timer */
-    border-bottom: 1px solid #ddd;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* Make sure content doesn't get hidden behind fixed header */
-.quiz-content-with-fixed-header {
-    padding-top: 150px; /* Adjust based on your header height */
-}
-
-@media (min-width: 900px) {
-    .quiz-input-fixed {
-        width: 900px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-}
-
-/* Style for the fixed input area */
-.quiz-input-fixed .answer-input-container {
+#questionTable {
     width: 100%;
-    display: flex;
-    gap: 0.5rem;
+    border-collapse: collapse;
+    margin-top: 10px;
 }
 
-.quiz-input-fixed .answer-input-container input {
-    flex: 1;
-    padding: 0.75rem;
+#questionTable th, #questionTable td {
     border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 1rem;
+    padding: 10px;
+    text-align: left;
+    vertical-align: top;
 }
 
-.quiz-input-fixed .progress-container {
-    margin-top: 0.5rem;
-    font-weight: bold;
+#questionTable th {
+    background-color: #f2f2f2;
+}
+
+#questionTable th:nth-child(1),
+#questionTable td:nth-child(1) {
+    width: 5%; /* Column for # */
+    text-align: center;
+}
+#questionTable th:nth-child(3),
+#questionTable td:nth-child(3) {
+    width: 30%; /* Column for Answer */
+}
+#questionTable td:nth-child(3).revealed-answer {
+    font-style: italic;
+    color: #007bff; /* Style for revealed answers */
+}
+#questionTable td:nth-child(3).user-answer {
+    font-weight: bold; /* Style for user's correct answers */
+}
+
+
+.quiz-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
 }
