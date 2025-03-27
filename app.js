@@ -602,10 +602,10 @@ class UIManager {
     resetSetupForm() {
         // Keep API key, reset others
         // this.apiKeyInput.value = ''; // Keep API key filled
-        this.numQuestionsInput.value = '5';
+        this.numQuestionsInput.value = '15';
         this.difficultyInput.value = 'medium';
         this.topicInput.value = '';
-        this.timeLimitMinutesInput.value = '15';
+        this.timeLimitMinutesInput.value = '5';
         this.timeLimitSecondsInput.value = '0';
         this.timeLimitError.style.display = 'none'; // Hide time error
         this.numQuestionsInput.style.borderColor = ''; // Reset border color
