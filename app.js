@@ -1,5 +1,21 @@
 // --- Constants ---
 const KNOWN_ANSWERS_STORAGE_KEY = 'llmTrivia_knownAnswers';
+// Generation Strategy Constants
+const HIGH_N_THRESHOLD = 20; // Use higher factor above this requested N
+const OVER_GENERATION_FACTOR_LOW_N = 1.8;
+const OVER_GENERATION_FACTOR_HIGH_N = 3.0; // Increased factor for large N requests
+const ITERATION_OVER_GENERATION_FACTOR = 2.0; // Factor for follow-up iterations
+const ITERATION_MIN_REQUEST_SIZE = 5; // Min questions to request in iterations
+// Iteration Control
+const ITERATION_SHORTFALL_THRESHOLD_PERCENT = 0.85; // Trigger iteration if < 85% found initially
+const MAX_ADDITIONAL_ITERATIONS = 2; // Max *extra* API calls after the first one
+// Limits
+const MAX_GENERATION_SECONDS = 60;
+// API Tuning Constants (used when knownAnswerSet is large)
+const API_TEMP_STRATEGY_B = 0.85;
+const API_PENALTY_STRATEGY_B = 0.1;
+// Prompt Injection Constant (used by QuizAPI internally, but defined here for context)
+// const MAX_PROMPT_ANSWERS = 75; // Already defined in api.js
 
 // --- Utility Functions ---
 
@@ -366,6 +382,8 @@ class UIManager {
         this.timeLimitError = document.getElementById('timeLimitError');
         this.setupForm = document.getElementById('setupForm');
         this.loadingMessage = document.getElementById('loadingMessage');
+        // *** NEW: Add reference for loading progress ***
+        this.loadingProgress = document.getElementById('loadingProgress');
         this.savedQuizList = document.getElementById('savedQuizList');
         this.noSavedQuizzesMessage = document.getElementById('noSavedQuizzesMessage');
         this.quizTimerDisplay = document.getElementById('quizTimerDisplay');
@@ -396,11 +414,8 @@ class UIManager {
             this.globalError.textContent = message;
             this.globalError.style.display = 'block';
         } else {
-             // For inline errors (like time limit) - already handled by specific element
-             console.error("Inline error requested:", message);
-             // Example: Find relevant element and display error nearby
-             // const errorElement = document.getElementById('someFieldError');
-             // if (errorElement) { errorElement.textContent = message; errorElement.style.display = 'block'; }
+             // For inline errors (like time limit) - handled by specific element
+             console.error("Inline error requested (not shown globally):", message);
         }
     }
 
@@ -409,9 +424,6 @@ class UIManager {
             this.globalError.style.display = 'none';
             this.globalError.textContent = '';
          }
-         // Example: Hide specific inline errors
-         // const errorElement = document.getElementById('someFieldError');
-         // if (errorElement) { errorElement.style.display = 'none'; }
     }
 
      displayQuizStatusMessage(message, type = 'info', duration = 3000) {
@@ -454,7 +466,8 @@ class UIManager {
             this.apiKeyInput.focus();
             isValid = false;
          }
-        if (isNaN(numQuestions) || numQuestions < 1 || numQuestions > 50) { // Added upper limit
+        // Validate up to 50 questions
+        if (isNaN(numQuestions) || numQuestions < 1 || numQuestions > 50) {
             // Using global error for question count validity
             this.showError("Number of questions must be between 1 and 50.", true);
              this.numQuestionsInput.style.borderColor = 'red';
@@ -600,8 +613,7 @@ class UIManager {
     }
 
     resetSetupForm() {
-        // Keep API key, reset others
-        // this.apiKeyInput.value = ''; // Keep API key filled
+        // Keep API key, reset others (default to 15 questions)
         this.numQuestionsInput.value = '15';
         this.difficultyInput.value = 'medium';
         this.topicInput.value = '';
@@ -609,17 +621,38 @@ class UIManager {
         this.timeLimitSecondsInput.value = '0';
         this.timeLimitError.style.display = 'none'; // Hide time error
         this.numQuestionsInput.style.borderColor = ''; // Reset border color
+        this.apiKeyInput.style.borderColor = '';
     }
 
-    displayLoading(show, message = 'Loading...') {
+    // *** MODIFIED: displayLoading now handles progress text ***
+    displayLoading(show, message = 'Loading...', current = -1, total = -1) {
         if (show) {
-            this.loadingMessage.textContent = message;
+            if (this.loadingMessage) {
+                this.loadingMessage.textContent = message;
+            }
+
+            if (this.loadingProgress) {
+                if (current >= 0 && total > 0) {
+                    // Display progress text
+                    this.loadingProgress.textContent = `(${current} / ${total} questions found)`;
+                    this.loadingProgress.style.display = 'block';
+                } else {
+                    // Hide progress if numbers are not valid/provided
+                    this.loadingProgress.textContent = '';
+                    this.loadingProgress.style.display = 'none';
+                }
+            }
+            // Ensure the loading view is shown
             this.showView('loading');
         } else {
-             // Only hide the loading view if it's currently active
+             // Hide loading view
              if (this.views.loading.classList.contains('active-view')) {
                  this.views.loading.classList.remove('active-view');
-                 // Important: Don't switch view here, controller decides next view
+             }
+             // Also clear progress text when hiding
+             if (this.loadingProgress) {
+                 this.loadingProgress.textContent = '';
+                 this.loadingProgress.style.display = 'none';
              }
         }
     }
@@ -658,7 +691,6 @@ class AppController {
              } catch (e) {
                  // Show error but allow app to continue loading
                  this.ui.showError("Failed to initialize API handler. API Key might be invalid.");
-                 // this.storage.saveApiKey(''); // Optionally clear invalid key
              }
         }
         this.savedQuizzes = this.storage.getQuizzes();
@@ -691,10 +723,9 @@ class AppController {
             this._handleGenerateQuiz();
         });
 
-        // API Key input change (using 'input' for real-time feedback, 'change' fires on blur)
+        // API Key input change
         this.ui.apiKeyInput.addEventListener('input', (event) => {
-            // Basic validation feedback could be added here in real-time if desired
-            // For now, just update storage on blur via _handleApiKeyInput
+            // Can add real-time basic checks here if desired
         });
         this.ui.apiKeyInput.addEventListener('change', (event) => {
             this._handleApiKeyInput(event.target.value);
@@ -785,152 +816,252 @@ class AppController {
          } else {
              this.quizApi = null; // Clear API object if key is removed
              this.ui.apiKeyInput.style.borderColor = ''; // Reset border
-             // Optionally show a message indicating API key is needed
-             // this.ui.showError("API Key is required to generate quizzes.", false);
          }
      }
 
-    // Handles quiz generation, filtering, and saving
+    // *** REWRITTEN: _handleGenerateQuiz with Iteration Logic ***
     async _handleGenerateQuiz() {
         let options;
         try {
             options = this.ui.getSetupOptions();
         } catch (error) {
-            // getSetupOptions now throws and UIManager shows errors
+            // Errors shown by UIManager based on validation rules
             return; // Stop if options are invalid
         }
 
         if (!this.quizApi) {
-            this.ui.showError("OpenAI API Key is not set or invalid. Please provide a valid key in the setup.", true);
+            this.ui.showError("OpenAI API Key is not set or invalid.", true);
             this.ui.apiKeyInput.style.borderColor = 'red';
             this.ui.apiKeyInput.focus();
             return;
         }
 
-        this.ui.displayLoading(true, `Generating ${options.numQuestions} ${options.difficulty} questions (filtering duplicates)...`);
+        const startTime = Date.now();
+        const requestedN = options.numQuestions;
+        let finalQuizQuestions = [];
+        // Crucial: Use a *copy* of global known answers for this session's checks
+        let accumulatedAnswerSet = new Set(this.knownAnswerSet);
+        let currentIteration = 0; // 0 = initial call, 1+ = follow-up calls
+        let errorOccurred = false;
+        let errorMessage = '';
+        let timedOut = false;
 
-        try {
-            // 1. Call API (passing known answers, potentially over-generating)
-            const potentialQuestions = await this.quizApi.generateQuiz(
-                options.numQuestions,
-                options.difficulty,
-                options.topic,
-                this.knownAnswerSet // Pass the currently known answers
-            );
+        // Initial loading message with progress
+        this.ui.displayLoading(true, 'Starting generation...', 0, requestedN);
 
-            // 2. Filter for unique answers
-            const finalQuizQuestions = [];
-            const currentBatchAnswerSet = new Set(); // Tracks answers unique *within this new batch*
+        // --- Generation Loop ---
+        while (
+            finalQuizQuestions.length < requestedN &&
+            currentIteration <= MAX_ADDITIONAL_ITERATIONS && // Allows 0, 1, ..., MAX_ADDITIONAL_ITERATIONS
+            !timedOut && !errorOccurred
+        ) {
+            // --- Check Time Limit (Start of Loop) ---
+            const elapsedSeconds = (Date.now() - startTime) / 1000;
+            if (elapsedSeconds >= MAX_GENERATION_SECONDS) {
+                console.warn(`Generation time limit (${MAX_GENERATION_SECONDS}s) exceeded.`);
+                timedOut = true;
+                break; // Exit loop immediately
+            }
 
+            console.log(`--- Iteration ${currentIteration} (Found ${finalQuizQuestions.length}/${requestedN}) ---`);
+
+            // --- Determine Request Parameters ---
+            const numStillNeeded = requestedN - finalQuizQuestions.length;
+            let numToRequest;
+            let apiCallOptions = {};
+
+            if (currentIteration === 0) {
+                // Initial Call: Use dynamic over-generation factor
+                const factor = requestedN > HIGH_N_THRESHOLD
+                               ? OVER_GENERATION_FACTOR_HIGH_N
+                               : OVER_GENERATION_FACTOR_LOW_N;
+                // Request at least N, plus the over-generation amount
+                numToRequest = Math.max(numStillNeeded, Math.ceil(requestedN * factor));
+                console.log(`Initial request factor: ${factor}, Requesting: ${numToRequest}`);
+            } else {
+                // Follow-up Call: Factor based on remaining needed, with a minimum
+                numToRequest = Math.max(ITERATION_MIN_REQUEST_SIZE, Math.ceil(numStillNeeded * ITERATION_OVER_GENERATION_FACTOR));
+                console.log(`Iteration ${currentIteration} request factor: ${ITERATION_OVER_GENERATION_FACTOR}, Requesting: ${numToRequest}`);
+            }
+
+            // Determine API tuning strategy (temp/penalty if known set is large)
+            // Using 75 from QuizAPI's internal check for consistency
+            if (accumulatedAnswerSet.size > 75) {
+                 console.log(`Applying Strategy B tuning (Temp: ${API_TEMP_STRATEGY_B}, Penalty: ${API_PENALTY_STRATEGY_B})`);
+                 apiCallOptions.temperature = API_TEMP_STRATEGY_B;
+                 apiCallOptions.presence_penalty = API_PENALTY_STRATEGY_B;
+            } else {
+                 console.log("Using default API temperature/penalty.");
+                 // Use defaults defined in QuizAPI if not overridden
+            }
+
+            // Update UI before making the call
+            this.ui.displayLoading(true, `Requesting batch ${currentIteration + 1} (${numToRequest} questions)...`, finalQuizQuestions.length, requestedN);
+
+            // --- Make API Call ---
+            let potentialQuestions = [];
+            try {
+                potentialQuestions = await this.quizApi.generateQuiz(
+                    numToRequest,
+                    options.difficulty,
+                    options.topic,
+                    accumulatedAnswerSet, // Pass currently accumulated answers for this session
+                    apiCallOptions        // Pass temperature/penalty if needed
+                );
+            } catch (e) {
+                console.error(`API Error during iteration ${currentIteration}:`, e);
+                errorOccurred = true;
+                // Attempt to make error message more user-friendly
+                errorMessage = e.message.includes("API key") ? "Invalid API Key." :
+                               e.message.includes("Rate limit") ? "API Rate Limit Exceeded. Please wait." :
+                               e.message; // Default to original message
+                break; // Exit loop on API error
+            }
+
+            // --- Filter Response & Update State ---
+            // Update UI during filtering
+            this.ui.displayLoading(true, `Filtering batch ${currentIteration + 1}...`, finalQuizQuestions.length, requestedN);
+            let questionsAddedThisIteration = 0;
             for (const question of potentialQuestions) {
-                // Stop if we have enough questions
-                if (finalQuizQuestions.length >= options.numQuestions) {
-                    break;
+                if (finalQuizQuestions.length >= requestedN) {
+                    break; // Got enough, stop filtering this batch
                 }
-
                 const canonicalAnswer = question.answer;
-                const normalizedAnswer = normalizeString(canonicalAnswer); // Use global utility
+                const normalizedAnswer = normalizeString(canonicalAnswer);
 
-                // Check uniqueness against global known set AND current batch set
-                if (!this.knownAnswerSet.has(normalizedAnswer) && !currentBatchAnswerSet.has(normalizedAnswer)) {
+                // Check uniqueness against answers found so far *in this entire generation process*
+                if (!accumulatedAnswerSet.has(normalizedAnswer)) {
                     finalQuizQuestions.push(question);
-                    currentBatchAnswerSet.add(normalizedAnswer); // Add to batch set to prevent duplicates *within the batch*
+                    accumulatedAnswerSet.add(normalizedAnswer); // Add to this session's set
+                    questionsAddedThisIteration++;
                 } else {
-                    console.log(`Filtering duplicate answer: "${canonicalAnswer}" (Normalized: "${normalizedAnswer}")`);
+                    // console.log(`Filtering duplicate answer during iteration ${currentIteration}: "${canonicalAnswer}"`); // Can be verbose
+                }
+            }
+            console.log(`Added ${questionsAddedThisIteration} unique questions in iteration ${currentIteration}. Total found: ${finalQuizQuestions.length}`);
+            // Update progress display immediately after filtering
+            this.ui.displayLoading(true, `Generating...`, finalQuizQuestions.length, requestedN);
+
+
+            // --- Check if iteration threshold met (only after initial call, if still needed) ---
+            if (currentIteration === 0 && finalQuizQuestions.length < requestedN) {
+                const foundPercentage = finalQuizQuestions.length / requestedN;
+                if (foundPercentage >= ITERATION_SHORTFALL_THRESHOLD_PERCENT) {
+                    console.log(`Found ${Math.round(foundPercentage*100)}% (${finalQuizQuestions.length}/${requestedN}) on first try, meeting threshold (${ITERATION_SHORTFALL_THRESHOLD_PERCENT*100}%). Stopping iterations.`);
+                    break; // Exit loop - good enough, don't make more calls
+                } else {
+                    console.log(`Found ${Math.round(foundPercentage*100)}% (${finalQuizQuestions.length}/${requestedN}), below threshold (${ITERATION_SHORTFALL_THRESHOLD_PERCENT*100}%). Continuing iteration.`);
+                    // Continue loop implicitly if limits allow
                 }
             }
 
-            // 3. Handle Filtering Outcome
-            if (finalQuizQuestions.length === 0) {
-                 // Throw error if *no* unique questions could be found
-                 throw new Error("Failed to generate any questions with unique answers. Try a different topic, broaden criteria, or clear known answers (via console if needed).");
-            }
+            currentIteration++; // Increment iteration counter for the next loop check
+        } // --- End of Generation Loop ---
 
-            let resultMessage = `Generated ${finalQuizQuestions.length} unique questions.`;
-            if (finalQuizQuestions.length < options.numQuestions) {
-                console.warn(`Requested ${options.numQuestions} unique questions, but only found ${finalQuizQuestions.length}. Proceeding with fewer.`);
-                resultMessage += ` (Less than requested ${options.numQuestions})`;
-            }
 
-            // 4. Prepare final quiz data object
-             const newQuizData = {
+        // --- Post-Loop Processing ---
+        this.ui.displayLoading(false); // Hide loading indicator regardless of outcome
+
+        // Handle errors first
+        if (errorOccurred) {
+            this.ui.showError(`Quiz Generation Failed: ${errorMessage}`, true);
+            return; // Stop processing
+        }
+        // Handle timeout (might still have some questions)
+        if (timedOut) {
+             // Show error, but proceed if we found some questions
+            this.ui.showError(`Quiz Generation timed out after ${MAX_GENERATION_SECONDS} seconds.`, true);
+        }
+
+        // Handle case where absolutely no questions were found
+        if (finalQuizQuestions.length === 0) {
+            this.ui.showError("Failed to generate any unique questions after all attempts. Try different options.", true);
+            return; // Stop processing
+        }
+
+        // --- Prepare Final Result Message ---
+        let resultMessage = `Generated ${finalQuizQuestions.length} unique questions.`;
+        if (finalQuizQuestions.length < requestedN) {
+            resultMessage += ` (Requested ${requestedN}`;
+             if (timedOut) resultMessage += ` - Time limit reached`;
+             else if (currentIteration > MAX_ADDITIONAL_ITERATIONS) resultMessage += ` - Iteration limit reached`;
+             resultMessage += `)`;
+             console.warn(resultMessage);
+        } else {
+             console.log(resultMessage);
+        }
+
+
+        // --- Save Quiz Data & Update Global Known Answers ---
+        try {
+            const newQuizData = {
                 quizNumber: this.nextQuizNumber,
-                questions: finalQuizQuestions, // Use the filtered list
+                questions: finalQuizQuestions, // Use the final list
                 difficulty: options.difficulty,
                 topic: options.topic || '',
                 timeLimitSeconds: options.timeLimitSeconds
-             };
+            };
 
-            // 5. Save Quiz & Update Known Answers globally
             this.savedQuizzes.push(newQuizData);
             this.storage.saveQuizzes(this.savedQuizzes);
             this.nextQuizNumber++;
             this.storage.saveNextQuizNumber(this.nextQuizNumber);
 
-            // Add *all* newly used unique answers (from currentBatchAnswerSet) to the global known set
-            currentBatchAnswerSet.forEach(answer => this.knownAnswerSet.add(answer));
+            // Update the *global* known answer set with all answers found in this session
+            // Merge the session set into the global set
+            accumulatedAnswerSet.forEach(answer => this.knownAnswerSet.add(answer));
             // Save the updated global set back to storage
             this.storage.saveKnownAnswers(this.knownAnswerSet);
 
-            // 6. Start the quiz
-            this.ui.displayLoading(false); // Hide loading indicator
-            // Display success/warning message briefly before starting
-            this.ui.displayQuizStatusMessage(resultMessage, 'info', 3000); // Show in quiz view status area
-            this.startQuiz(newQuizData); // Pass data with potentially fewer questions
+            // --- Start the Quiz ---
+            // Optionally display the result message briefly before starting
+            // This message will appear in the *quiz view* status area
+            this.ui.displayQuizStatusMessage(resultMessage, 'info', 4000);
+            this.startQuiz(newQuizData);
 
-        } catch (error) {
-            console.error("Quiz generation and filtering failed:", error);
-            this.ui.displayLoading(false); // Hide loading indicator
-            // Show error message persistently
-            this.ui.showError(`Quiz Generation Failed: ${error.message}`, true);
-            // Stay on setup view for user to adjust options or API key
+        } catch (saveError) {
+             console.error("Error saving quiz data or updating known answers:", saveError);
+             this.ui.showError("Generation succeeded, but failed to save the quiz data.", true);
+        }
+    } // --- End of _handleGenerateQuiz ---
+
+    _handleStartSavedQuiz(index) {
+        if (index >= 0 && index < this.savedQuizzes.length) {
+            // Abort active quiz if navigating away
+            this._navigate('quiz');
+            const quizData = this.savedQuizzes[index];
+            if (!quizData || !quizData.questions) {
+                console.error("Saved quiz data invalid:", index);
+                this.ui.showError("Selected quiz data corrupted.", true);
+                return;
+            }
+            this.startQuiz(quizData);
+        } else {
+            console.error("Invalid quiz index:", index);
+            this.ui.showError("Could not find the selected quiz.", true);
         }
     }
 
-    _handleStartSavedQuiz(index) {
-         if (index >= 0 && index < this.savedQuizzes.length) {
-              // Abort any currently active quiz (handled by _navigate)
-              this._navigate('quiz'); // Navigate to quiz view, will abort if needed
-              // Check if navigation actually happened (in case of future confirmation logic)
-              if (!this.ui.views.quiz.classList.contains('active-view')) {
-                  // If we didn't end up in the quiz view, maybe navigation was prevented
-                  // For now, assume it always works or aborts silently
-              }
+    _handleDeleteQuiz(index) {
+        if (index >= 0 && index < this.savedQuizzes.length) {
+            const quizToDelete = this.savedQuizzes[index];
+            // Keep confirmation for delete action
+            const confirmDelete = this.ui.showConfirmation(`Are you sure you want to delete Quiz #${quizToDelete.quizNumber}? This action cannot be undone.`);
+            if (confirmDelete) {
+                this.savedQuizzes.splice(index, 1); // Remove the quiz from the array
+                this.storage.saveQuizzes(this.savedQuizzes); // Update storage
+                this.ui.renderPregeneratedQuizzes(this.savedQuizzes); // Re-render the list
+                // Keep known answers even if quiz deleted
 
-              const quizData = this.savedQuizzes[index];
-              // Ensure quizData.questions exists before starting
-              if (!quizData || !quizData.questions) {
-                  console.error("Saved quiz data is invalid or missing questions at index:", index);
-                  this.ui.showError("Selected saved quiz data is corrupted.", true);
-                  return;
-              }
-             this.startQuiz(quizData);
-         } else {
-             console.error("Invalid quiz index:", index);
-             this.ui.showError("Could not find the selected quiz.", true);
-         }
-     }
-
-     _handleDeleteQuiz(index) {
-          if (index >= 0 && index < this.savedQuizzes.length) {
-              const quizToDelete = this.savedQuizzes[index];
-              // Keep confirmation for delete action
-              const confirmDelete = this.ui.showConfirmation(`Are you sure you want to delete Quiz #${quizToDelete.quizNumber}? This action cannot be undone.`);
-              if (confirmDelete) {
-                  this.savedQuizzes.splice(index, 1); // Remove the quiz from the array
-                  this.storage.saveQuizzes(this.savedQuizzes); // Update storage
-                  this.ui.renderPregeneratedQuizzes(this.savedQuizzes); // Re-render the list
-                  // Optionally clear related answers from knownAnswerSet?
-                  // Decision: Keep answers known even if quiz is deleted. Simplifies logic.
-                  // Show confirmation message
-                  this.ui.showError(`Quiz #${quizToDelete.quizNumber} deleted.`, true); // Use global bar
-                  setTimeout(() => this.ui.hideError(), 3000); // Hide after 3 seconds
-              }
-          } else {
-              console.error("Invalid quiz index for deletion:", index);
-              this.ui.showError("Could not find the quiz to delete.", true);
-          }
-      }
+                // Show confirmation message
+                this.ui.showError(`Quiz #${quizToDelete.quizNumber} deleted.`, true); // Use global bar
+                setTimeout(() => this.ui.hideError(), 3000); // Hide after 3 seconds
+            }
+        } else {
+            console.error("Invalid quiz index for deletion:", index);
+            this.ui.showError("Could not find the quiz to delete.", true);
+        }
+    }
 
     // Starts a quiz instance with the given data
     startQuiz(quizData) {
@@ -1033,7 +1164,7 @@ class AppController {
 
     // Handles the "End Quiz & Back to Menu" button click (no confirmation via _navigate)
     _handleEndQuizEarly() {
-         // Navigate function handles confirmation (if added back) and abortion
+         // Navigate function handles abortion silently
          this._navigate('mainMenu');
     }
 
@@ -1055,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const appController = new AppController(uiManager, storageManager);
     appController.init();
 
-    // Optional: Make controller accessible globally for debugging
+    // Make controller accessible globally for debugging
     // e.g., open browser console and type: app.clearKnownAnswers()
     window.app = appController;
 });
